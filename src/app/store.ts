@@ -8,7 +8,9 @@
 
 import { openKV } from '../platform/idb';
 import { keepData } from '../platform/device';
-import { type Bytes } from '../core/bytes';
+import { type Archived, archive } from '../core/archive';
+import { BackupFailure, type TicketFile, makeBackup, openBackup } from '../core/backup';
+import { type Bytes, utf8 } from '../core/bytes';
 import { type Identity, type KeyId, type PublicIdentity, createIdentity, newTripKey, publicPart } from '../core/crypto';
 import { openBundle, sealBundle } from '../core/bundle';
 import { syncCode } from '../core/codes';
@@ -27,7 +29,8 @@ export type Route =
   | { to: 'trips' } | { to: 'newTrip' } | { to: 'settings' } | { to: 'changePin' }
   | { to: 'main' } | { to: 'overview'; day?: string } | { to: 'sync' } | { to: 'members' } | { to: 'conflicts' }
   | { to: 'edit'; item?: string; day?: string } | { to: 'driver'; item: string } | { to: 'ticket'; item: string }
-  | { to: 'enroll'; join?: boolean };
+  | { to: 'enroll'; join?: boolean }
+  | { to: 'archived'; id: string } | { to: 'export'; id: string } | { to: 'import' };
 
 export interface Prefs {
   palette: Palette;
@@ -505,13 +508,102 @@ class App {
 
   // ---- tickets (only on this phone, never synced) -----------------------
 
-  readTicket(item: string) {
-    return this.session!.vault.read<Ticket>(`ticket:${this.trip!.meta.id}:${item}`);
+  readTicket(item: string, trip = this.trip!.meta.id) {
+    return this.session!.vault.read<Ticket>(`ticket:${trip}:${item}`);
   }
 
   saveTicket(item: string, ticket: Ticket | undefined) {
     const name = `ticket:${this.trip!.meta.id}:${item}`;
     return this.save(() => (ticket ? this.session!.vault.put(name, ticket) : this.session!.vault.remove(name)));
+  }
+
+  // ---- finished trips: archive, delete, back up ---------------------------------
+
+  private compact(trip: OpenTrip): Archived {
+    const { id, name, start, end } = trip.meta;
+    return archive({ id, name, start, end, people: trip.data.members.map((m) => m.name) }, trip.state);
+  }
+
+  /** Every item this trip ever had, so tickets of deleted items go too. */
+  private itemIds = (trip: OpenTrip) => [...new Set(trip.log.all().map((r) => r.item))];
+
+  /** Keeps only the final itinerary; change history, keys and tickets are removed from this phone. */
+  async archiveTrip() {
+    const trip = this.trip!;
+    const { vault } = this.session!;
+    const compact = this.compact(trip);
+    await vault.put(`archive:${trip.meta.id}`, compact);
+    for (const item of this.itemIds(trip)) await vault.remove(`ticket:${trip.meta.id}:${item}`);
+    await vault.remove(`trip:${trip.meta.id}`);
+    trip.meta.archived = { at: compact.archivedAt, size: utf8(JSON.stringify(compact)).length };
+    delete trip.meta.code;
+    await this.saveTrips(this.trips);
+    await vault.remove('current');
+    this.trip = undefined;
+    this.reset({ to: 'trips' });
+    this.theme(true);
+  }
+
+  readArchive(id: string) {
+    return this.session!.vault.read<Archived>(`archive:${id}`);
+  }
+
+  /** Checks the PIN before something that cannot be undone. Wrong guesses count, as on the lock screen. */
+  async checkPin(pin: string): Promise<Unlock> {
+    const result = await Vault.unlock(this.kv, pin);
+    if (!result.ok && result.wiped) {
+      this.session = undefined;
+      this.trip = undefined;
+      this.reset({ to: 'wiped' });
+    }
+    return result;
+  }
+
+  async deleteTrip(id: string) {
+    const { vault } = this.session!;
+    if (this.trip?.meta.id === id) {
+      for (const item of this.itemIds(this.trip)) await vault.remove(`ticket:${id}:${item}`);
+      await vault.remove('current');
+      this.trip = undefined;
+    }
+    await vault.remove(`trip:${id}`);
+    await vault.remove(`archive:${id}`);
+    await this.saveTrips(this.trips.filter((t) => t.id !== id));
+    this.reset({ to: 'trips' });
+  }
+
+  /** A password-protected backup file of an archived trip, or of the open one (optionally with tickets). */
+  async backup(id: string, password: string, withTickets: boolean): Promise<{ name: string; bytes: Uint8Array }> {
+    const meta = this.trips.find((t) => t.id === id)!;
+    let trip: Archived | undefined;
+    const tickets: TicketFile[] = [];
+    if (meta.archived) {
+      trip = await this.readArchive(id);
+    } else {
+      if (this.trip?.meta.id !== id) await this.loadTrip(id);
+      trip = this.compact(this.trip!);
+      for (const item of withTickets ? this.trip!.state.items.values() : []) {
+        const t = await this.readTicket(item.id, id);
+        const v = item.values;
+        if (t) tickets.push({ name: [String(v.date ?? '').slice(5), v.start, v.title].filter(Boolean).join(' '), type: t.type, bytes: t.bytes });
+      }
+    }
+    if (!trip) throw new BackupFailure('format');
+    return { name: `${meta.name} 備份 ${new Date().toISOString().slice(0, 10)}.zip`, bytes: await makeBackup(trip, password, tickets) };
+  }
+
+  /** Brings a backup back as an archived (read-only) trip. */
+  async importBackup(bytes: Uint8Array, password: string): Promise<TripMeta> {
+    const trip = await openBackup(bytes, password);
+    if (this.trips.some((t) => t.id === trip.id)) throw new Error('exists');
+    const meta: TripMeta = {
+      id: trip.id, name: trip.name, start: trip.start, end: trip.end, role: 'member', people: trip.people.length,
+      archived: { at: trip.archivedAt, size: utf8(JSON.stringify(trip)).length },
+    };
+    await this.session!.vault.put(`archive:${trip.id}`, trip);
+    await this.saveTrips([...this.trips, meta]);
+    this.changed();
+    return meta;
   }
 }
 

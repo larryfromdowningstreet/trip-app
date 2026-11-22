@@ -7,7 +7,7 @@ import {
   countdown, dateOf, daysBetween, itemsOn, longDay, mapLink, nextIndex, shortDay, timeRange, undated,
 } from '../app/trip';
 import type { ItemState } from '../core/merge';
-import { isApple } from '../platform/device';
+import { isApple, openOutside } from '../platform/device';
 import { Icon } from '../ui/icons';
 import { Tabs, TripBar, useNow } from '../ui/kit';
 
@@ -124,7 +124,7 @@ function StopCard({ item, kind, when, main }: { item: ItemState; kind: string; w
         {item.pending && <span class="tag pending" style={{ alignSelf: 'flex-start' }}>待確認</span>}
       </div>
       {nav && (
-        <a class="btn primary big" href={nav} target="_blank" rel="noopener noreferrer">
+        <a class="btn primary big" href={nav} target="_blank" rel="noopener noreferrer" onClick={(e) => openOutside(e, nav)}>
           <Icon name="navigate" size={22} />開始導航
         </a>
       )}
@@ -231,7 +231,7 @@ function OpenItem({ item }: { item: ItemState }) {
     <div class="open-item">
       {facts(item.values).length > 0 && <Facts item={item} />}
       <div class="btns">
-        {nav && <a class="btn" href={nav} target="_blank" rel="noopener noreferrer"><Icon name="navigate" />導航</a>}
+        {nav && <a class="btn" href={nav} target="_blank" rel="noopener noreferrer" onClick={(e) => openOutside(e, nav)}><Icon name="navigate" />導航</a>}
         <button class="btn" onClick={() => app.go({ to: 'driver', item: item.id })}><Icon name="car" />給司機看</button>
         <button class="btn" onClick={() => app.go({ to: 'ticket', item: item.id })}><Icon name="ticket" />票券</button>
         {app.isOrganizer && <button class="btn" onClick={() => app.go({ to: 'edit', item: item.id })}>編輯</button>}

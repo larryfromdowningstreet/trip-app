@@ -16,6 +16,7 @@ export interface TripMeta {
   people: number;
   lastSync?: number;
   code?: string; // sync code at the last sync
+  archived?: { at: number; size: number }; // finished and kept in compact, read-only form
 }
 
 export interface Member extends PublicIdentity {

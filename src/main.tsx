@@ -8,6 +8,7 @@ import { isApple, isInstalled } from './platform/device';
 import { ChangePin, NewTrip, Settings, Trips } from './screens/account';
 import { Driver, Edit, Ticket } from './screens/item';
 import { Enroll } from './screens/enroll';
+import { ArchivedTrip, Export, Import } from './screens/finished';
 import { Conflicts, Members } from './screens/people';
 import { Sync } from './screens/sync';
 import { NextStop, Overview } from './screens/plan';
@@ -27,7 +28,10 @@ function Screen({ route }: { route: Route }) {
     case 'newTrip': return <NewTrip />;
     case 'settings': return <Settings />;
     case 'changePin': return <ChangePin />;
-    case 'enroll': if (route.join || !app.trip) return <Enroll join />;
+    case 'enroll': if (route.join || !app.trip) return <Enroll join />; break;
+    case 'archived': return <ArchivedTrip id={route.id} />;
+    case 'export': return <Export id={route.id} />;
+    case 'import': return <Import />;
   }
   if (!app.trip) return <Trips />;
   switch (route.to) {
@@ -53,5 +57,6 @@ function Root() {
 
 app.boot(isApple() && !isInstalled()).then(() => render(<Root />, document.getElementById('app')!));
 
-if (import.meta.env.PROD && 'serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+// The Android app carries its files inside; only the website needs a service worker for offline use.
+if (import.meta.env.PROD && 'serviceWorker' in navigator && !('Capacitor' in window)) navigator.serviceWorker.register('./sw.js');
 if (import.meta.env.DEV) import('./dev').then((dev) => dev.install());

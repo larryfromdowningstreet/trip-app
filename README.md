@@ -3,6 +3,7 @@
 多人一起規劃旅程的 App，**完全不連網**。旅伴之間用 QR Code 面對面交換行程，出國沒有網路也能用。
 
 - iPhone：用 Safari 打開網址，「分享 → 加入主畫面」，之後從主畫面圖示打開即可離線使用。
+- Android：安裝 APK（沒有網路權限），或用 Chrome 打開網址後「加到主畫面」。
 - 網站只在發布新版本時需要上網；App 本身禁止任何連線（CSP `connect-src 'none'`）。
 
 ## 怎麼運作
@@ -14,6 +15,7 @@
 - **衝突**：兩人改了同一處時，先顯示較晚的版本並標示「待確認」，由主揪決定；刪除和修改同時發生時先保留。
 - **封鎖**：手機遺失時封鎖該成員，封鎖前的變更保留，之後的一律不採用。
 - **鎖定**：離開 App 2 分鐘後上鎖；PIN 連續錯 10 次清除本機資料（行程可再和旅伴互掃取回）。
+- **封存與備份**：結束的旅程可封存成精簡的唯讀版本；可匯出 AES-256 加密 zip（至少 8 字元密碼，7-Zip 等工具可開），也能匯入回來。
 
 ## 開發
 
@@ -24,6 +26,19 @@ npm test           # 單元測試
 npx tsc -p .       # 型別檢查
 npm run build      # 產生 dist/（含 CSP 與離線用 service worker）
 ```
+
+## Android App
+
+`android/` 是 Capacitor 包裝的 Android 專案，**不含網路權限**（`INTERNET` 從所有函式庫一併移除）、
+不允許系統備份，只要求相機權限來掃 QR Code。
+
+```sh
+export ANDROID_HOME=…/android-sdk                  # 需要 platforms;android-36 和 build-tools;36.0.0
+export TRIP_KEYSTORE=…/trip-app.jks TRIP_KEYSTORE_PASSWORD=…   # 簽章金鑰不放在 repo 裡
+npm run android                                     # 產生 android/app/build/outputs/apk/release/app-release.apk
+```
+
+同一把簽章金鑰簽出的新版才能直接覆蓋安裝；換了金鑰就得先解除安裝（手機上的資料會一起刪除）。
 
 ## 程式結構
 

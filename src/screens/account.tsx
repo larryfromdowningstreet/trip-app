@@ -3,15 +3,19 @@
 import { useState } from 'preact/hooks';
 import { app } from '../app/store';
 import { PALETTES, nextSwitch } from '../app/theme';
-import { daysBetween, placeFor, tripRange, when, dateOf } from '../app/trip';
+import { type TripMeta, daysBetween, placeFor, tripRange, when, dateOf } from '../app/trip';
 import { checkPin } from '../core/pin';
 import type { ThemeSetting } from '../core/sun';
 import { Icon } from '../ui/icons';
-import { BackBar, PinBoxes, Sheet, Tabs } from '../ui/kit';
+import { BackBar, Confirm, PinBoxes, Sheet, Tabs } from '../ui/kit';
+import { DeleteTrip, kb } from './finished';
 import { OfflineChip } from './start';
 
 export function Trips() {
-  const trips = [...app.trips].sort((x, y) => (x.start < y.start ? 1 : -1));
+  const [deleting, setDeleting] = useState<TripMeta>();
+  const newestFirst = (x: TripMeta, y: TripMeta) => (x.start < y.start ? 1 : -1);
+  const active = app.trips.filter((t) => !t.archived).sort(newestFirst);
+  const archived = app.trips.filter((t) => t.archived).sort(newestFirst);
   return (
     <div class="screen">
       <header class="bar">
@@ -19,8 +23,8 @@ export function Trips() {
         <button class="icon-btn" aria-label="設定" onClick={() => app.go({ to: 'settings' })}><Icon name="gear" size={22} /></button>
       </header>
       <main class="body end">
-        {trips.length > 0 && <h2 class="section-label">進行中</h2>}
-        {trips.map((t) => (
+        {active.length > 0 && <h2 class="section-label">進行中</h2>}
+        {active.map((t) => (
           <button class={t.id === app.trip?.meta.id ? 'card accent pad trip-card' : 'card pad trip-card'} onClick={() => app.openTrip(t.id)}>
             <span class="trip-card-top"><b>{t.name}</b><Icon name="next" /></span>
             <span class="small muted">{tripRange(t)} · {t.people} 人</span>
@@ -30,17 +34,39 @@ export function Trips() {
             </span>
           </button>
         ))}
-        {trips.length === 0 && (
+        {app.trips.length === 0 && (
           <div class="empty">
             <Icon name="pin" size={36} width={1.5} />
             <p>還沒有旅程。<br />自己建立一個，或請主揪面對面掃描加入。</p>
           </div>
         )}
+        {archived.length > 0 && (
+          <>
+            <h2 class="section-label">已封存（唯讀）</h2>
+            <div class="card rows">
+              {archived.map((t) => (
+                <div class="archived">
+                  <button class="trip-card" onClick={() => app.go({ to: 'archived', id: t.id })}>
+                    <span class="trip-card-top"><b>{t.name}</b><Icon name="next" /></span>
+                    <span class="small muted">{tripRange(t)} · {kb(t.archived!.size)} · 不含票券</span>
+                  </button>
+                  <div class="pair">
+                    <button class="btn line" onClick={() => app.go({ to: 'export', id: t.id })}>匯出備份</button>
+                    <button class="btn line danger" onClick={() => setDeleting(t)}>刪除</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p class="tiny muted">匯出時要另設一組至少 8 個字元的密碼；刪除前需要輸入 PIN 碼。</p>
+          </>
+        )}
         <div class="stack push-end">
           <button class="btn primary tall" onClick={() => app.go({ to: 'newTrip' })}>建立新旅程</button>
           <button class="btn soft tall" onClick={() => app.go({ to: 'enroll', join: true })}>加入旅程（面對面互掃）</button>
+          <button class="btn plain" onClick={() => app.go({ to: 'import' })}>從備份匯入</button>
         </div>
       </main>
+      {deleting && <DeleteTrip trip={deleting} onClose={() => setDeleting(undefined)} />}
     </div>
   );
 }
@@ -97,6 +123,9 @@ const MODES: { id: ThemeSetting; label: string }[] = [
 export function Settings() {
   const { palette, theme } = app.prefs;
   const [renaming, setRenaming] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const trip = app.trip?.meta;
   const place = app.trip && placeFor(app.trip.state, dateOf(new Date()));
   const asTab = !!app.trip && app.stack.length === 1; // opened from the bottom tabs inside a trip
   return (
@@ -126,6 +155,16 @@ export function Settings() {
         </fieldset>
         <p class="small muted">手機開啟「減少動態效果」時，切換動畫會自動簡化。</p>
         <OfflineChip />
+        {trip && (
+          <>
+            <h2 class="section-label">這趟旅程：{trip.name}</h2>
+            <div class="card rows">
+              <button class="row" onClick={() => app.go({ to: 'export', id: trip.id })}>匯出備份<span class="end"><Icon name="next" /></span></button>
+              <button class="row" onClick={() => setArchiving(true)}>封存這趟旅程<span class="end"><Icon name="next" /></span></button>
+              <button class="row danger-text" onClick={() => setDeleting(true)}>從這支手機刪除</button>
+            </div>
+          </>
+        )}
         <h2 class="section-label">安全</h2>
         <div class="card rows">
           <button class="row" onClick={() => app.go({ to: 'changePin' })}>更改 PIN 碼<span class="end"><Icon name="next" /></span></button>
@@ -140,6 +179,11 @@ export function Settings() {
       </main>
       {asTab && <Tabs />}
       {renaming && <Rename onDone={() => setRenaming(false)} />}
+      {archiving && (
+        <Confirm title="封存這趟旅程？" yes="封存" onNo={() => setArchiving(false)} onYes={() => (setArchiving(false), app.archiveTrip())}
+          text="封存後只留下最後的行程，可以看不能改，也不能再同步。變更紀錄和票券截圖會從這支手機刪除，需要票券的話先匯出備份。" />
+      )}
+      {deleting && trip && <DeleteTrip trip={trip} onClose={() => setDeleting(false)} />}
     </div>
   );
 }

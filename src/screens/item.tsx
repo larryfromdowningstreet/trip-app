@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { app } from '../app/store';
 import { TYPES, driverAsk, formatCoords, longDay, mapLink, parseCoords, shortDay, toMinutes, weekday } from '../app/trip';
-import { isApple, useWakeLock } from '../platform/device';
+import { isApple, openOutside, useWakeLock } from '../platform/device';
 import { Icon } from '../ui/icons';
 import { BackBar, Confirm, Segmented } from '../ui/kit';
 
@@ -136,7 +136,7 @@ export function Driver({ item: id }: { item: string }) {
       </main>
       <footer class="foot">
         {awake && <p class="awake"><Icon name="sun" />螢幕保持開啟中</p>}
-        {map && <a class="btn soft tall" href={map} target="_blank" rel="noopener noreferrer"><Icon name="pin" />在地圖 App 開啟這個地點</a>}
+        {map && <a class="btn soft tall" href={map} target="_blank" rel="noopener noreferrer" onClick={(e) => openOutside(e, map)}><Icon name="pin" />在地圖 App 開啟這個地點</a>}
       </footer>
     </div>
   );

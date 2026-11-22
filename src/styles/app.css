@@ -71,6 +71,7 @@ fieldset { padding: 0; border: 0; min-width: 0; }
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+.body > * { flex-shrink: 0; } /* long content scrolls instead of squeezing cards */
 .body.roomy { padding: 4px 24px calc(env(safe-area-inset-bottom) + 28px); gap: 18px; }
 .body.end { padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
 .push-end { margin-top: auto; }
@@ -367,3 +368,8 @@ input[type='time']::-webkit-date-and-time-value, input[type='date']::-webkit-dat
 .tick { display: flex; justify-content: center; align-items: center; width: 28px; height: 28px; flex-shrink: 0; border-radius: 14px; background: var(--ok); color: var(--card); }
 .tick.waiting { background: none; border: 2px dashed var(--ring); }
 .check-line { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+
+/* ---- finished trips ----------------------------------------------------- */
+.archived { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; }
+.archived .trip-card { padding: 0; border: 0; background: none; }
+.big-check { width: 24px; height: 24px; accent-color: var(--primary); flex-shrink: 0; }
