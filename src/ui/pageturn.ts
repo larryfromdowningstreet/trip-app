@@ -2,7 +2,7 @@
 // The tabs are pages 1, 2, 3… from left to right; going from page 1 to page 4 turns three leaves.
 //   forward: the current page lifts from the right and turns over to the left, revealing the next
 //   backward: a leaf comes back from the left and lands on top, ending with the page asked for
-// The page area between the top bar and the tabs turns; the bars stay put. Leaves in between, and the back
+// Everything above the tabs turns, the top bar included; the tabs stay put. Leaves in between, and the back
 // of every leaf, are frosted glass. With "reduce motion" the pages just cross-fade.
 
 import { snapshot } from './snapshot';
@@ -23,10 +23,9 @@ export async function turnPages(steps: number, apply: () => void) {
   const screen = app?.querySelector<HTMLElement>('.screen');
   if (!app || !screen || !steps || document.visibilityState !== 'visible') return apply();
 
-  // The part of the screen that turns: below the top bar, above the tabs.
-  const bar = screen.querySelector('header')?.getBoundingClientRect();
+  // The part of the screen that turns: from the very top down to the tabs.
   const tabs = screen.querySelector('nav.tabs')?.getBoundingClientRect();
-  const top = bar ? bar.bottom : 0;
+  const top = 0;
   const bottom = tabs ? tabs.top : innerHeight;
 
   const stage = document.createElement('div');
