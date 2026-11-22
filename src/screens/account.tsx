@@ -136,6 +136,7 @@ export function Settings() {
         <div class="card rows">
           <button class="row" onClick={() => setRenaming(true)}>暱稱<span class="end">{app.me.name}<Icon name="next" /></span></button>
         </div>
+        <p class="tiny muted center">版本 {__BUILD__}</p>
       </main>
       {asTab && <Tabs />}
       {renaming && <Rename onDone={() => setRenaming(false)} />}
