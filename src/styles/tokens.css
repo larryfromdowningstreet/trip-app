@@ -1,0 +1,76 @@
+/* Colors for both palettes, day and night. Screens only ever use these names.
+   The selectors work on any element, so a copy of the old screen can keep its colors during the sunset transition. */
+
+[data-palette] {
+  --sans: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --serif: 'Noto Serif TC Variable', 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'Songti TC', serif;
+  --head-font: var(--sans);
+  --bar-pad: 8px; --bar-gap: 0px; --kind-spacing: 1px; --code-font: var(--sans); --code-color: var(--text);
+}
+
+/* 暖棕奶茶 */
+[data-palette='warm'][data-mode='day'] {
+  color-scheme: light;
+  --bg: #F5EDE2; --card: #FFF8EF; --soft: #ECD9C3; --seg: #F0E3D3;
+  --primary: #74513A; --primary-strong: #5A3B29; --on-primary: #FFF8EF;
+  --text: #35281F; --text-2: #776251; --text-3: #604B3D;
+  --ok: #5E6B47; --line: #E9DACA; --field-line: #DCC9B6; --dot: #DBC6B0; --ring: #A48E7C;
+  --danger: #B42318; --danger-bg: #F8E2D8; --warn: #8A5300; --warn-bg: #FDF3E1; --camera: #33281F;
+  --accent: var(--primary); --accent-text: var(--primary);
+  --bar-bg: var(--bg); --bar-text: var(--text); --bar-text-2: var(--text-2); --bar-ok: var(--ok);
+  --bar-action: var(--primary); --bar-on-action: var(--on-primary);
+  --nav-bg: var(--card); --nav-line: var(--line); --nav-on: var(--primary); --nav-off: var(--text-2);
+  --lock-bg: var(--bg); --lock-text: var(--text); --lock-text-2: var(--text-2); --lock-key: var(--card);
+  --lock-icon-bg: var(--soft); --lock-icon: var(--primary); --lock-dot: var(--text); --lock-ring: var(--ring);
+}
+
+[data-palette='warm'][data-mode='night'] {
+  color-scheme: dark;
+  --bg: #1E1813; --card: #2A221B; --soft: #3D3026; --seg: #342A22;
+  --primary: #D2B08C; --primary-strong: #E6C9AB; --on-primary: #2A221B;
+  --text: #F1E6D8; --text-2: #B8A592; --text-3: #C9B6A2;
+  --ok: #9DAE85; --line: #3A2F26; --field-line: #4A3D32; --dot: #4E4136; --ring: #7D6A5B;
+  --danger: #E07A6B; --danger-bg: #3D2420; --warn: #E3B46A; --warn-bg: #3A2C17; --camera: #120E0B;
+  --accent: var(--primary); --accent-text: var(--primary);
+  --bar-bg: var(--bg); --bar-text: var(--text); --bar-text-2: var(--text-2); --bar-ok: var(--ok);
+  --bar-action: var(--primary); --bar-on-action: var(--on-primary);
+  --nav-bg: var(--card); --nav-line: var(--line); --nav-on: var(--primary); --nav-off: var(--text-2);
+  --lock-bg: var(--bg); --lock-text: var(--text); --lock-text-2: var(--text-2); --lock-key: var(--card);
+  --lock-icon-bg: var(--soft); --lock-icon: var(--primary); --lock-dot: var(--text); --lock-ring: var(--ring);
+}
+
+/* 森林綠霧金: green bars, matte gold accents, serif headings */
+[data-palette='forest'] { --head-font: var(--serif); --bar-pad: 12px; --bar-gap: 12px; --kind-spacing: 2px; --code-font: var(--serif); --code-color: var(--accent-text); }
+
+[data-palette='forest'][data-mode='day'] {
+  color-scheme: light;
+  --bg: #F3EEE2; --card: #FBF8F1; --soft: #EAE0C8; --seg: #ECE6D6;
+  --primary: #23402F; --primary-strong: #183024; --on-primary: #FBF8F1;
+  --text: #1E2B23; --text-2: #5D685E; --text-3: #4F5A50;
+  --ok: #557050; --line: #E0D8C6; --field-line: #D2C8B2; --dot: #D3C8AF; --ring: #A89C80;
+  --danger: #8C2F2B; --danger-bg: #F1DFD9; --warn: #80591A; --warn-bg: #F4E8CD; --camera: #16241B;
+  --accent: #B29A66; --accent-text: #7A6435;
+  --bar-bg: #23402F; --bar-text: #F3EEE2; --bar-text-2: #C9D1C3; --bar-ok: #9DB58E;
+  --bar-action: #B29A66; --bar-on-action: #16241B;
+  --nav-bg: #23402F; --nav-line: #B29A66; --nav-on: #C9B37E; --nav-off: #B9C4B6;
+  --lock-bg: #23402F; --lock-text: #F3EEE2; --lock-text-2: #B9C4B6; --lock-key: #2F4E3C;
+  --lock-icon-bg: #2F4E3C; --lock-icon: #C9B37E; --lock-dot: #C9B37E; --lock-ring: #7E9283;
+}
+
+[data-palette='forest'][data-mode='night'] {
+  color-scheme: dark;
+  --bg: #0F1A14; --card: #18261D; --soft: #2E3424; --seg: #1F3027;
+  --primary: #C2A872; --primary-strong: #D6BF8A; --on-primary: #18261D;
+  --text: #EDE6D6; --text-2: #A9B5A6; --text-3: #C3CCBF;
+  --ok: #8FAE80; --line: #2A3A2F; --field-line: #3A4A3F; --dot: #3B4A3F; --ring: #6F7A6C;
+  --danger: #D9776C; --danger-bg: #3A2420; --warn: #E2B868; --warn-bg: #33301B; --camera: #08100B;
+  --accent: #A88F5B; --accent-text: #D4C08C;
+  --bar-bg: #142319; --bar-text: #EDE6D6; --bar-text-2: #A9B5A6; --bar-ok: #9DB58E;
+  --bar-action: #B29A66; --bar-on-action: #16241B;
+  --nav-bg: #142319; --nav-line: #5C5034; --nav-on: #C9B37E; --nav-off: #95A291;
+  --lock-bg: #0F1A14; --lock-text: #EDE6D6; --lock-text-2: #95A291; --lock-key: #1B2C22;
+  --lock-icon-bg: #1B2C22; --lock-icon: #C9B37E; --lock-dot: #C9B37E; --lock-ring: #5E7064;
+}
+
+/* QR Codes and ticket screenshots stay light whatever the mode, so scanners and staff can read them. */
+.always-light { color-scheme: light; background: #FFFFFF; color: #1A1A1A; }
