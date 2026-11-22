@@ -16,7 +16,7 @@ export function Sync() {
   const s = app.sync;
   return (
     <div class="screen">
-      <TripBar menu={!app.isOrganizer} />
+      <TripBar />
       <main class="body">
         {!s ? <Home /> : s.role === 'collect' ? <Collect /> : <Send />}
       </main>

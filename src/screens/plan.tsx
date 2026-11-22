@@ -66,7 +66,7 @@ export function NextStop() {
 
   return (
     <div class="screen">
-      <TripBar menu={!app.isOrganizer} />
+      <TripBar />
       <main class="body">
         <p class="day-label">{dayLabel(days, day, now)}</p>
         {over || items.length === 0 || next >= items.length ? (
@@ -182,7 +182,7 @@ export function Overview({ day: asked }: { day?: string }) {
 
   return (
     <div class="screen">
-      <TripBar menu={!app.isOrganizer} />
+      <TripBar />
       <div class="days" role="tablist" aria-label="選擇日期">
         {days.map((d, i) => (
           <button role="tab" aria-selected={d === day} onClick={() => (setDay(d), app.remember({ day: d }), setOpen(undefined), setPast(false))}>
