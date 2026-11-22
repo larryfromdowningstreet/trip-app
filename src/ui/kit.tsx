@@ -2,7 +2,7 @@
 
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { type Route, app } from '../app/store';
+import { app } from '../app/store';
 import { when } from '../app/trip';
 import { Icon, type IconName } from './icons';
 
@@ -42,7 +42,7 @@ export function BackBar({ title, sub, action }: { title: string; sub?: string; a
   );
 }
 
-/** Top bar inside a trip: trip name (opens the trip list), sync status, and the ⋯ menu with settings. */
+/** Top bar inside a trip: trip name (opens the trip list) and sync status. */
 export function TripBar() {
   const trip = app.trip!;
   const synced = trip.meta.lastSync;
@@ -57,40 +57,20 @@ export function TripBar() {
           aria-label={synced ? `${when(synced)} 已同步，點一下進入同步` : '還沒有同步過，點一下進入同步'}>
           {synced ? '已同步' : '尚未同步'}
         </button>
-        <MoreMenu />
       </div>
     </header>
   );
 }
 
-function MoreMenu() {
-  const [open, setOpen] = useState(false);
-  const pick = (route: Route) => {
-    setOpen(false);
-    app.go(route);
-  };
-  return (
-    <>
-      <button class="icon-btn" aria-label="更多" onClick={() => setOpen(true)}><Icon name="more" size={22} /></button>
-      {open && (
-        <Sheet onClose={() => setOpen(false)}>
-          {!app.isOrganizer && <button class="menu-item" onClick={() => pick({ to: 'sync' })}><Icon name="sync" size={22} />同步</button>}
-          <button class="menu-item" onClick={() => pick({ to: 'trips' })}><Icon name="list" size={22} />我的旅程</button>
-          <button class="menu-item" onClick={() => pick({ to: 'settings' })}><Icon name="gear" size={22} />設定</button>
-        </Sheet>
-      )}
-    </>
-  );
-}
-
-const TABS: { to: 'main' | 'overview' | 'sync' | 'members'; label: string; icon: IconName; organizer?: boolean }[] = [
+const TABS: { to: 'main' | 'overview' | 'sync' | 'members' | 'settings'; label: string; icon: IconName; organizer?: boolean }[] = [
   { to: 'main', label: '下一站', icon: 'pin' },
   { to: 'overview', label: '行程', icon: 'list' },
-  { to: 'sync', label: '同步', icon: 'sync', organizer: true },
+  { to: 'sync', label: '同步', icon: 'sync' },
   { to: 'members', label: '成員', icon: 'people', organizer: true },
+  { to: 'settings', label: '設定', icon: 'gear' },
 ];
 
-/** Bottom tabs. Members (view-only) get the first two; sync is in their ⋯ menu. */
+/** Bottom tabs inside a trip. Members (view-only) have no 成員 tab. */
 export function Tabs() {
   const here = app.route.to;
   return (

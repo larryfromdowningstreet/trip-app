@@ -7,7 +7,7 @@ import { daysBetween, placeFor, tripRange, when, dateOf } from '../app/trip';
 import { checkPin } from '../core/pin';
 import type { ThemeSetting } from '../core/sun';
 import { Icon } from '../ui/icons';
-import { BackBar, PinBoxes, Sheet } from '../ui/kit';
+import { BackBar, PinBoxes, Sheet, Tabs } from '../ui/kit';
 import { OfflineChip } from './start';
 
 export function Trips() {
@@ -98,9 +98,10 @@ export function Settings() {
   const { palette, theme } = app.prefs;
   const [renaming, setRenaming] = useState(false);
   const place = app.trip && placeFor(app.trip.state, dateOf(new Date()));
+  const asTab = !!app.trip && app.stack.length === 1; // opened from the bottom tabs inside a trip
   return (
     <div class="screen">
-      <BackBar title="設定" />
+      {asTab ? <header class="bar"><h1 class="bar-title">設定</h1></header> : <BackBar title="設定" />}
       <main class="body end">
         <h2 class="section-label">外觀</h2>
         <fieldset class="card pad stack" style={{ gap: '10px' }}>
@@ -136,6 +137,7 @@ export function Settings() {
           <button class="row" onClick={() => setRenaming(true)}>暱稱<span class="end">{app.me.name}<Icon name="next" /></span></button>
         </div>
       </main>
+      {asTab && <Tabs />}
       {renaming && <Rename onDone={() => setRenaming(false)} />}
     </div>
   );
