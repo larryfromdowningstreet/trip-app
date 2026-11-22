@@ -10,6 +10,7 @@
 
 /* 暖棕奶茶 */
 [data-palette='warm'][data-mode='day'] {
+  --glass: rgb(255 248 239 / 0.5);
   color-scheme: light;
   --bg: #F5EDE2; --card: #FFF8EF; --soft: #ECD9C3; --seg: #F0E3D3;
   --primary: #74513A; --primary-strong: #5A3B29; --on-primary: #FFF8EF;
@@ -25,6 +26,7 @@
 }
 
 [data-palette='warm'][data-mode='night'] {
+  --glass: rgb(58 46 36 / 0.5);
   color-scheme: dark;
   --bg: #1E1813; --card: #2A221B; --soft: #3D3026; --seg: #342A22;
   --primary: #D2B08C; --primary-strong: #E6C9AB; --on-primary: #2A221B;
@@ -43,6 +45,7 @@
 [data-palette='forest'] { --head-font: var(--serif); --bar-pad: 12px; --bar-gap: 12px; --kind-spacing: 2px; --code-font: var(--serif); --code-color: var(--accent-text); }
 
 [data-palette='forest'][data-mode='day'] {
+  --glass: rgb(251 248 241 / 0.5);
   color-scheme: light;
   --bg: #F3EEE2; --card: #FBF8F1; --soft: #EAE0C8; --seg: #ECE6D6;
   --primary: #23402F; --primary-strong: #183024; --on-primary: #FBF8F1;
@@ -58,6 +61,7 @@
 }
 
 [data-palette='forest'][data-mode='night'] {
+  --glass: rgb(36 54 42 / 0.5);
   color-scheme: dark;
   --bg: #0F1A14; --card: #18261D; --soft: #2E3424; --seg: #1F3027;
   --primary: #C2A872; --primary-strong: #D6BF8A; --on-primary: #18261D;

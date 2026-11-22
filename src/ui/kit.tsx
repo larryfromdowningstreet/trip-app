@@ -5,6 +5,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { app } from '../app/store';
 import { when } from '../app/trip';
 import { Icon, type IconName } from './icons';
+import { turnPages } from './pageturn';
 
 /** Runs an async calculation again whenever `deps` change, and gives back its latest result. */
 export function useAsync<T>(make: () => Promise<T>, deps: unknown[]): T | undefined {
@@ -73,10 +74,19 @@ const TABS: { to: 'main' | 'overview' | 'sync' | 'members' | 'settings'; label: 
 /** Bottom tabs inside a trip. Members (view-only) have no 成員 tab. */
 export function Tabs() {
   const here = app.route.to;
+  const tabs = TABS.filter((t) => !t.organizer || app.isOrganizer);
+  const at = tabs.findIndex((t) => t.to === here);
+  // Tabs are pages left to right: going from the 1st to the 4th turns three pages.
+  const open = (i: number) => {
+    if (i === at) return;
+    const go = () => app.reset({ to: tabs[i].to });
+    if (at < 0) go();
+    else turnPages(i - at, go);
+  };
   return (
     <nav class="tabs" aria-label="主選單">
-      {TABS.filter((t) => !t.organizer || app.isOrganizer).map((t) => (
-        <button class="tab" aria-current={here === t.to ? 'page' : undefined} onClick={() => app.reset({ to: t.to })}>
+      {tabs.map((t, i) => (
+        <button class="tab" aria-current={here === t.to ? 'page' : undefined} onClick={() => open(i)}>
           <Icon name={t.icon} size={24} width={1.8} />
           {t.label}
         </button>

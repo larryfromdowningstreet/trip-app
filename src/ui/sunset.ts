@@ -2,6 +2,8 @@
 // day rises from the bottom with a golden one. A copy of the old screen sits on top and is wiped away
 // through a soft-edged mask, so it works the same in every browser.
 
+import { snapshot } from './snapshot';
+
 const SWEEP_MS = 1400;
 const FADE_MS = 200; // with "reduce motion", and for palette changes
 const FEATHER = 0.4; // soft edge, as a share of the screen height
@@ -24,13 +26,8 @@ export function transition(change: Change, apply: () => void) {
   const root = document.documentElement;
   veil.dataset.palette = root.dataset.palette;
   veil.dataset.mode = root.dataset.mode;
-  const copy = app.cloneNode(true) as HTMLElement;
-  copy.removeAttribute('id');
-  // A copied radio button would join the real radio group and untick the real one when added to the page.
-  copy.querySelectorAll('[name]').forEach((el) => el.removeAttribute('name'));
-  veil.append(copy);
   document.body.append(veil);
-  mirror(app, copy);
+  snapshot(app, veil);
   apply();
 
   const glow = document.createElement('div');
@@ -67,22 +64,4 @@ export function transition(change: Change, apply: () => void) {
     else cleanup();
   };
   requestAnimationFrame(frame);
-}
-
-/** Things cloneNode leaves behind: scroll positions, typed text, ticked boxes, canvas pixels. */
-function mirror(from: HTMLElement, to: HTMLElement) {
-  const a = from.querySelectorAll<HTMLElement>('*');
-  const b = to.querySelectorAll<HTMLElement>('*');
-  a.forEach((el, i) => {
-    const twin = b[i];
-    if (el.scrollTop || el.scrollLeft) {
-      twin.scrollTop = el.scrollTop;
-      twin.scrollLeft = el.scrollLeft;
-    }
-    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
-      (twin as typeof el).value = el.value;
-      if (el instanceof HTMLInputElement) (twin as HTMLInputElement).checked = el.checked;
-    }
-    if (el instanceof HTMLCanvasElement) (twin as HTMLCanvasElement).getContext('2d')?.drawImage(el, 0, 0);
-  });
 }
