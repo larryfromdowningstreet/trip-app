@@ -34,5 +34,17 @@ export const isApple = () => /iPhone|iPad|iPod|Macintosh/.test(navigator.userAge
 export const isInstalled = () =>
   matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
 
+/** True once the service worker has stored every file, so the app opens with no network. */
+export function useOfflineReady(): boolean {
+  const sw = navigator.serviceWorker;
+  const [ready, setReady] = useState(!import.meta.env.PROD || !!sw?.controller);
+  useEffect(() => {
+    const done = () => setReady(true);
+    sw?.addEventListener('controllerchange', done);
+    return () => sw?.removeEventListener('controllerchange', done);
+  }, []);
+  return ready;
+}
+
 /** Asks the browser to keep our data even when space runs low. Best effort. */
 export const keepData = () => navigator.storage?.persist?.().catch(() => false);

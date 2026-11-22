@@ -5,6 +5,7 @@ import { app } from '../app/store';
 import { WIPE_AT, checkPin } from '../core/pin';
 import { Vault } from '../core/vault';
 import { Icon } from '../ui/icons';
+import { useOfflineReady } from '../platform/device';
 import { Confirm, PinBoxes } from '../ui/kit';
 
 export function InstallGuide() {
@@ -35,6 +36,13 @@ export function InstallGuide() {
       </main>
     </div>
   );
+}
+
+/** The line the install guide promises: whether the app can now open with no network. */
+export function OfflineChip() {
+  return useOfflineReady()
+    ? <span class="ok-chip"><Icon name="check" />已可離線使用</span>
+    : <span class="small muted">正在下載離線用的檔案，請先保持連網…</span>;
 }
 
 export function Onboarding() {
@@ -81,7 +89,10 @@ export function Onboarding() {
           </fieldset>
         )}
         <p class="note soft"><Icon name="key" size={20} /><span>App 會在這支手機產生你專屬的金鑰。金鑰不會離開手機，也沒辦法被複製出來。</span></p>
-        <button class="btn primary tall push-end" disabled={!ready}>{busy ? '建立中…' : '建立身分'}</button>
+        <div class="stack push-end" style={{ gap: '12px' }}>
+          <OfflineChip />
+          <button class="btn primary tall" disabled={!ready}>{busy ? '建立中…' : '建立身分'}</button>
+        </div>
       </form>
     </div>
   );

@@ -8,6 +8,7 @@ import { checkPin } from '../core/pin';
 import type { ThemeSetting } from '../core/sun';
 import { Icon } from '../ui/icons';
 import { BackBar, PinBoxes, Sheet } from '../ui/kit';
+import { OfflineChip } from './start';
 
 export function Trips() {
   const trips = [...app.trips].sort((x, y) => (x.start < y.start ? 1 : -1));
@@ -123,6 +124,7 @@ export function Settings() {
           ))}
         </fieldset>
         <p class="small muted">手機開啟「減少動態效果」時，切換動畫會自動簡化。</p>
+        <OfflineChip />
         <h2 class="section-label">安全</h2>
         <div class="card rows">
           <button class="row" onClick={() => app.go({ to: 'changePin' })}>更改 PIN 碼<span class="end"><Icon name="next" /></span></button>
