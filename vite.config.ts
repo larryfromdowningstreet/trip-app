@@ -65,6 +65,7 @@ export default defineConfig({
   base: './',
   oxc: { jsx: { runtime: 'automatic', importSource: 'preact' } },
   // Never inline files as data: URLs: the CSP only allows the app's own files.
-  build: { target: 'es2022', modulePreload: { polyfill: false }, assetsInlineLimit: 0 },
+  // Safari 14 and up, so older iPhones still run it.
+  build: { target: ['es2020', 'safari14'], modulePreload: { polyfill: false }, assetsInlineLimit: 0 },
   plugins: [offline()],
 });

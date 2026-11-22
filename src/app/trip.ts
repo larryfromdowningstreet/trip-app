@@ -190,4 +190,4 @@ export function driverAsk(address: string): { lang: string; text: string } {
   return { lang: 'en', text: 'Please take me to this address' };
 }
 
-export const initial = (name: string) => [...name.trim()].at(-1) ?? '?';
+export const initial = (name: string) => [...name.trim()].pop() ?? '?';

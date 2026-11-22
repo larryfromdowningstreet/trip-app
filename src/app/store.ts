@@ -126,7 +126,7 @@ class App {
   // ---- screens ----------------------------------------------------------
 
   get route(): Route {
-    return this.stack.at(-1) ?? { to: 'lock' };
+    return this.stack[this.stack.length - 1] ?? { to: 'lock' };
   }
 
   go(route: Route) {

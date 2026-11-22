@@ -51,8 +51,7 @@ function Root() {
   return <Screen key={`${app.stack.length}:${route.to}`} route={route} />;
 }
 
-await app.boot(isApple() && !isInstalled());
-render(<Root />, document.getElementById('app')!);
+app.boot(isApple() && !isInstalled()).then(() => render(<Root />, document.getElementById('app')!));
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 if (import.meta.env.DEV) import('./dev').then((dev) => dev.install());

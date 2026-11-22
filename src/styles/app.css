@@ -21,8 +21,9 @@ fieldset { padding: 0; border: 0; min-width: 0; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 [hidden] { display: none !important; }
 
-#app { height: 100dvh; }
+#app { height: 100vh; height: 100dvh; }
 .screen {
+  height: 100vh;
   height: 100dvh;
   display: flex;
   flex-direction: column;
