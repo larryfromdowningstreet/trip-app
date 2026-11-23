@@ -51,6 +51,9 @@ describe('places', () => {
     expect(parseCoords('https://maps.google.com/?q=34.9949%2C135.785')).toEqual({ lat: 34.9949, lng: 135.785 });
     expect(parseCoords('https://www.google.com/maps/@35.0116,135.7681,15z')).toEqual({ lat: 35.0116, lng: 135.7681 });
     expect(parseCoords('-33.8568 151.2153')).toEqual({ lat: -33.8568, lng: 151.2153 });
+    expect(parseCoords('34.99494° N, 135.78500° E')).toEqual({ lat: 34.99494, lng: 135.785 });
+    expect(parseCoords('33.8568° S, 151.2153° E')).toEqual({ lat: -33.8568, lng: 151.2153 });
+    expect(parseCoords('N 40.7128, W 74.0060')).toEqual({ lat: 40.7128, lng: -74.006 });
     expect(parseCoords('清水寺')).toBeUndefined();
     expect(parseCoords('95, 10')).toBeUndefined();
   });

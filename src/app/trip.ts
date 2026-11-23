@@ -161,12 +161,26 @@ export function placeFor(state: TripState, date: string): Place | undefined {
   return best?.place;
 }
 
-/** Reads "35.0116, 135.7681" or a map link that contains coordinates. */
+/**
+ * Reads coordinates as map apps give them: "35.0116, 135.7681" (Google Maps), "35.0116° N, 135.7681° E"
+ * (Apple Maps), or a map link that contains them. South and west make the number negative.
+ */
 export function parseCoords(text: string): Place | undefined {
-  const m = /(-?\d{1,2}(?:\.\d+)?)\s*[, ]\s*(-?\d{1,3}(?:\.\d+)?)/.exec(text.replace(/%2C/gi, ','));
-  if (!m) return undefined;
-  const lat = Number(m[1]);
-  const lng = Number(m[2]);
+  const t = text.replace(/%2C/gi, ',').replace(/[°º]/g, ' ');
+  const hemi = /(-?\d{1,2}(?:\.\d+)?)\s*([NS])[\s,]+(-?\d{1,3}(?:\.\d+)?)\s*([EW])/i.exec(t) ??
+    /([NS])\s*(-?\d{1,2}(?:\.\d+)?)[\s,]+([EW])\s*(-?\d{1,3}(?:\.\d+)?)/i.exec(t);
+  let lat: number;
+  let lng: number;
+  if (hemi) {
+    const [a, b, c, d] = /^[NS]$/i.test(hemi[1]) ? [hemi[2], hemi[1], hemi[4], hemi[3]] : [hemi[1], hemi[2], hemi[3], hemi[4]];
+    lat = Number(a) * (/s/i.test(b) ? -1 : 1);
+    lng = Number(c) * (/w/i.test(d) ? -1 : 1);
+  } else {
+    const m = /(-?\d{1,2}(?:\.\d+)?)\s*[, ]\s*(-?\d{1,3}(?:\.\d+)?)/.exec(t);
+    if (!m) return undefined;
+    lat = Number(m[1]);
+    lng = Number(m[2]);
+  }
   return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : undefined;
 }
 

@@ -375,3 +375,5 @@ input[type='time']::-webkit-date-and-time-value, input[type='date']::-webkit-dat
 .big-check { width: 24px; height: 24px; accent-color: var(--primary); flex-shrink: 0; }
 .fab-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
 .fab-row .fab { align-self: auto; }
+details.hint summary { cursor: pointer; color: var(--primary); padding: 4px 0; }
+.how { list-style: decimal; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }

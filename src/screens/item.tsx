@@ -87,8 +87,17 @@ export function Edit({ item: id, day }: { item?: string; day?: string }) {
           <input class="input" value={form.addressLocal} placeholder="例如：京都府京都市右京区…" onInput={set('addressLocal')} />
         </label>
         <label class="field">座標（選填，用來導航和判斷日落）
-          <input class="input" value={form.coords} inputmode="decimal" placeholder="在地圖 App 長按地點，複製座標貼上" onInput={set('coords')} />
+          <input class="input" value={form.coords} placeholder="例如 34.9949, 135.785" onInput={set('coords')} />
           {problems.coords && <span class="error">{problems.coords}</span>}
+          <details class="hint">
+            <summary>怎麼取得座標？</summary>
+            <ol class="how">
+              <li>在 Google 地圖長按目標位置，放下紅色圖釘。</li>
+              <li>不要點上方搜尋列（點了會變成地址），改把下方的「已放置的圖釘」資訊卡往上拉。</li>
+              <li>找到開頭是數字的那一行（例如 34.99494, 135.78500），點一下就會複製。</li>
+              <li>回到這裡長按欄位貼上。Apple 地圖的「34.99494° N, 135.78500° E」也可以。</li>
+            </ol>
+          </details>
         </label>
         <label class="field">交通方式<input class="input" value={form.transport} onInput={set('transport')} /></label>
         <label class="field">預約資訊<input class="input" value={form.booking} placeholder="訂位代號、車廂座位" onInput={set('booking')} /></label>
