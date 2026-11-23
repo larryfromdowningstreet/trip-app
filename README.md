@@ -25,6 +25,9 @@ npm run dev        # 開發伺服器；瀏覽器主控台可用 await dev.seed()
 npm test           # 單元測試
 npx tsc -p .       # 型別檢查
 npm run build      # 產生 dist/（含 CSP 與離線用 service worker）
+npx playwright install webkit   # 第一次跑瀏覽器測試前
+npm run e2e        # 用 iPhone Safari 的引擎（WebKit）測建置後的網站：離線、主要流程、翻頁、相機被拒
+npm run e2e -- --project=iphone-chromium   # 沒有 WebKit 時，用 Chromium 模擬 iPhone 螢幕跑同一組測試
 ```
 
 ## Android App

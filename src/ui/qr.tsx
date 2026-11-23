@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Bytes } from '../core/bytes';
 import { Receiver, qrFrames } from '../core/transfer';
-import { useWakeLock } from '../platform/device';
+import { isApple, isNative, useWakeLock } from '../platform/device';
 import { drawQr } from '../platform/qr';
 import { Icon } from './icons';
 
@@ -46,6 +46,7 @@ export function Scanner({ prompt, onBytes }: { prompt: string; onBytes: (bytes: 
   const [progress, setProgress] = useState('');
   const [note, setNote] = useState<{ text: string; bad?: boolean }>();
   const [problem, setProblem] = useState('');
+  const [attempt, setAttempt] = useState(0); // "再試一次" starts the camera again
   const handler = useRef(onBytes);
   handler.current = onBytes;
 
@@ -75,27 +76,60 @@ export function Scanner({ prompt, onBytes }: { prompt: string; onBytes: (bytes: 
     };
 
     if (import.meta.env.DEV) Object.assign(window, { devScan: take }); // tests feed decoded frames here
+    setProblem('');
+    const ended = () => !gone && setProblem('相機已經停止（App 曾切到背景，或被其他 App 使用）。');
     import('../platform/camera') // the QR reader is large; load it only when a scanner opens
-      .then(({ startScanner }) => (gone ? undefined : startScanner(video.current!, take)))
+      .then(({ startScanner }) => (gone ? undefined : startScanner(video.current!, take, ended)))
       .then((s) => (gone ? s?.() : (stop = s)))
-      .catch((e: Error) => setProblem(e.name === 'NotAllowedError' ? '沒有相機權限。請到手機的設定允許這個 App 使用相機。'
-        : e.name === 'NotFoundError' ? '找不到相機。' : `相機打不開：${e.message}`));
+      .catch((e: Error) => !gone && setProblem(cameraProblem(e)));
     return () => {
       gone = true;
       stop?.();
     };
-  }, []);
+  }, [attempt]);
 
   return (
     <div class="stack" style={{ gap: '8px' }}>
       <div class="camera">
-        <video ref={video} playsInline muted />
+        <video ref={video} playsInline muted autoPlay />
         <span class="camera-frame" aria-hidden="true" />
-        <span class="camera-prompt">{problem || progress || prompt}</span>
+        <span class="camera-prompt">{problem ? '相機沒有開啟' : progress || prompt}</span>
       </div>
+      {problem && (
+        <div class="note warn" role="alert" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+          <span>{problem}</span>
+          <button type="button" class="btn line" onClick={() => setAttempt((n) => n + 1)}>再試一次</button>
+        </div>
+      )}
       {note && <p class={note.bad ? 'note warn' : 'note ok'} role="status">{note.text}</p>}
     </div>
   );
+}
+
+/** What to tell the person when the camera does not start, in the words of their own phone's settings. */
+function cameraProblem(e: Error): string {
+  switch (e.name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+      if (isNative()) return '沒有相機權限。請到手機的「設定 → 應用程式 → 漫旅手帳 → 權限」允許使用相機，再按「再試一次」。';
+      if (isApple()) {
+        return '沒有相機權限。請打開 iPhone 的「設定」，找到 Safari 的「相機」，改成「詢問」或「允許」，'
+          + '再按「再試一次」；跳出詢問時選「允許」。還是不行的話，把 App 完全關掉再打開。';
+      }
+      return '沒有相機權限。請在瀏覽器的網站設定允許使用相機，再按「再試一次」。';
+    case 'NotFoundError':
+    case 'OverconstrainedError':
+      return '找不到相機。';
+    case 'NotReadableError':
+    case 'AbortError':
+      return '相機正被其他 App 使用。關掉其他用到相機的 App，再按「再試一次」。';
+    case 'NoCameraApi':
+      return isApple()
+        ? '這個瀏覽器不能使用相機。請用 Safari 打開，或從主畫面的圖示打開。'
+        : '這個瀏覽器不能使用相機。請改用手機內建的瀏覽器打開。';
+    default:
+      return `相機打不開：${e.message || e.name}`;
+  }
 }
 
 /** Steps across the top of a flow: done ones get a tick. */
