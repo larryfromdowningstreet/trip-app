@@ -29,11 +29,11 @@ describe('bulk import', () => {
     expect(r.items).toEqual([{ title: '清水寺', date: '2027-03-11', start: '13:30', lat: 34.9949, lng: 135.785, note: '人多, 早點去' }]);
     const csv = '日期,開始,標題,備註\n2027/3/12,08:00,嵐山,"竹林, 小火車"';
     expect(parseBulk(csv, days).items).toEqual([{ title: '嵐山', date: '2027-03-12', start: '08:00', note: '竹林, 小火車' }]);
-    expect(parseBulk(tsv, days).problems).toEqual(['第 2 筆：沒有標題，略過', '第 2 筆：看不懂日期「9」，先放在「還沒排日期」']);
+    expect(parseBulk(tsv, days).problems).toEqual(['第 2 筆：沒有標題，略過', '第 2 筆：看不懂日期「9」，先放在「口袋名單」']);
   });
 
   it('flags dates outside the trip, refuses nonsense, and skips what is already there', () => {
-    expect(parseBulk('[{"date":"2027-04-01","title":"x"}]', days).problems).toEqual(['第 1 筆「x」：2027-04-01 不在這趟旅程的日期內']);
+    expect(parseBulk('[{"date":"2027-04-01","title":"x"}]', days).problems).toEqual(['第 1 筆「x」：2027-04-01 不在這趟旅程的日期內，先放在「口袋名單」']);
     expect(parseBulk('隨便寫寫', days).items).toEqual([]);
     expect(parseBulk('{"items": "no"}', days).problems).toHaveLength(1);
     const { fresh, duplicates } = withoutDuplicates(

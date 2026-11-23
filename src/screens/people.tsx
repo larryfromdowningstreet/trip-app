@@ -8,7 +8,7 @@ import { whitelistCode } from '../core/codes';
 import { type Conflict, valueOf } from '../core/merge';
 import type { Access, ChangeRecord } from '../core/model';
 import { Icon } from '../ui/icons';
-import { BackBar, Confirm, Segmented, Tabs, TripBar, useAsync } from '../ui/kit';
+import { BackBar, Confirm, Segmented, useAsync } from '../ui/kit';
 
 const ACCESS = [['edit', '可修改'], ['view', '只能看'], ['blocked', '封鎖']] as const;
 
@@ -25,9 +25,8 @@ export function Members() {
 
   return (
     <div class="screen">
-      <TripBar />
+      <BackBar title="成員" sub="只有主揪看得到" />
       <main class="body">
-        <h1 class="title">成員</h1>
         <div class="card pad spread">
           <span class="stack" style={{ gap: '2px' }}>
             <span class="small muted">白名單碼</span>
@@ -62,7 +61,6 @@ export function Members() {
         <p class="tiny muted">「只能看」和「封鎖」只影響這支手機採用誰的變更。要大家一致，請每位主揪都設定一次。</p>
         <button class="btn soft tall push-end" onClick={() => app.go({ to: 'enroll' })}><Icon name="plus" />新增成員（面對面互掃）</button>
       </main>
-      <Tabs />
       {target && (
         <Confirm title={`封鎖${target.name}？`} danger yes="封鎖" onNo={() => setBlocking(undefined)}
           onYes={() => (setBlocking(undefined), app.setAccess(target.id, 'blocked'))}

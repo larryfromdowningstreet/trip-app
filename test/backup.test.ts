@@ -12,7 +12,7 @@ const A = 'aaaaaaaaaaaaaaaa';
 const r1 = addItem({ a: A, s: 1, t: 1 }, { date: '2027-03-11', start: '13:30', title: '清水寺', addressLocal: '京都府京都市東山区清水1丁目294', lat: 34.99, lng: 135.78 }, 'I1');
 const r2 = addItem({ a: A, s: 2, t: 2 }, { date: '2027-03-10', start: '09:00', title: '關西機場', note: '' }, 'I2');
 const state = merge([r1, r2, setField(merge([r1, r2]), { a: A, s: 3, t: 3 }, 'I2', 'note', null)]);
-const trip = archive({ id: 'T1', name: '京都五日遊', start: '2027-03-10', end: '2027-03-14', people: ['小明', '小華'] }, state, 1_700_000_000_000);
+const trip = archive({ id: 'T1', name: '京都五日遊', start: '2027-03-10', end: '2027-03-14', people: ['小明', '小華'] }, state, undefined, 1_700_000_000_000);
 
 describe('archive', () => {
   it('keeps only the final itinerary, in order, without empty fields', () => {

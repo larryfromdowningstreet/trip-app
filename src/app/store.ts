@@ -4,7 +4,7 @@
 // Storage: an IndexedDB table (see platform/idb). Only these sit outside the PIN-protected vault:
 //   prefs  palette and day/night choice, so the lock screen can be drawn before unlocking
 //   keys   this person's private keys, as non-extractable CryptoKeys the browser will not hand out
-// Everything else (profile, trips, change records, tickets) is inside the vault.
+// Everything else (profile, trips, change records, tickets, each person's own lists) is inside the vault.
 
 import { openKV } from '../platform/idb';
 import { keepData } from '../platform/device';
@@ -14,6 +14,7 @@ import { type Bytes, utf8 } from '../core/bytes';
 import { type Identity, type KeyId, type PublicIdentity, createIdentity, newTripKey, publicPart } from '../core/crypto';
 import { openBundle, sealBundle } from '../core/bundle';
 import { syncCode } from '../core/codes';
+import { type ListEntry, type ListKind, type Lists, MAX_ENTRIES, copyPacking, emptyLists, readLists } from '../core/lists';
 import { EnrollFailure, type Listed, type Role, makeInvite, openInvite } from '../core/enroll';
 import { ChangeLog, type Vector } from '../core/log';
 import { type Conflict, type TripState, addItem, deleteItem, merge, resolve, setField } from '../core/merge';
@@ -27,7 +28,7 @@ import { type Member, type TripData, type TripMeta, dateOf, placeFor, tripDays }
 export type Route =
   | { to: 'install' } | { to: 'onboarding' } | { to: 'lock' } | { to: 'wiped' }
   | { to: 'trips' } | { to: 'newTrip' } | { to: 'settings' } | { to: 'changePin' }
-  | { to: 'main' } | { to: 'overview'; day?: string } | { to: 'sync' } | { to: 'members' } | { to: 'conflicts' }
+  | { to: 'main' } | { to: 'overview'; day?: string } | { to: 'sync' } | { to: 'lists' } | { to: 'members' } | { to: 'conflicts' }
   | { to: 'edit'; item?: string; day?: string } | { to: 'driver'; item: string } | { to: 'ticket'; item: string }
   | { to: 'enroll'; join?: boolean }
   | { to: 'archived'; id: string } | { to: 'export'; id: string } | { to: 'import' } | { to: 'bulk' };
@@ -37,6 +38,7 @@ export interface Prefs {
   theme: ThemeSetting;
   mode: Mode; // last shown, for drawing the lock screen
   installSkipped?: boolean;
+  listTab?: ListKind; // which list the 清單 tab opened last
 }
 
 export interface OpenTrip {
@@ -44,6 +46,7 @@ export interface OpenTrip {
   data: TripData;
   log: ChangeLog;
   state: TripState;
+  lists: Lists; // only this person's, never synced
 }
 
 interface Session {
@@ -252,15 +255,26 @@ class App {
     return this.session?.trips ?? [];
   }
 
-  async createTrip(name: string, start: string, end: string) {
+  async createTrip(name: string, start: string, end: string, packing?: ListEntry[]) {
     const { vault, me } = this.session!;
     const meta: TripMeta = { id: newItemId(), name: name.trim(), start, end, role: 'organizer', people: 1 };
     const data: TripData = {
       key: newTripKey(), members: [{ ...publicPart(me), trust: { access: 'edit' } }], records: [], batches: [], synced: {}, fresh: [],
     };
     await vault.put(`trip:${meta.id}`, data);
+    if (packing?.length) await vault.put(`lists:${meta.id}`, { shopping: [], packing: copyPacking(packing) });
     await this.saveTrips([...this.trips, meta]);
     await this.openTrip(meta.id);
+  }
+
+  /** The packing list of the latest other trip that has one, for a new trip to start from. */
+  async previousPacking(): Promise<{ name: string; entries: ListEntry[] } | undefined> {
+    const { vault } = this.session!;
+    for (const t of [...this.trips].sort((x, y) => (x.start < y.start ? 1 : -1))) {
+      const lists = t.archived ? (await this.readArchive(t.id))?.lists : readLists(await vault.read(`lists:${t.id}`));
+      if (lists?.packing.length) return { name: t.name, entries: lists.packing };
+    }
+    return undefined;
   }
 
   async openTrip(id: string) {
@@ -277,7 +291,8 @@ class App {
     if (!meta || !stored) return void (this.trip = undefined);
     const data: TripData = { ...stored, batches: stored.batches ?? [], synced: stored.synced ?? {}, fresh: stored.fresh ?? [] };
     const log = new ChangeLog(data.records);
-    this.trip = { meta, data, log, state: this.compute(log, data.members) };
+    const lists = readLists(await vault.read(`lists:${id}`)) ?? emptyLists();
+    this.trip = { meta, data, log, state: this.compute(log, data.members), lists };
     this.sync = undefined;
   }
 
@@ -513,6 +528,37 @@ class App {
     this.changed();
   }
 
+  // ---- own lists (only on this phone, never synced) ------------------------
+
+  private saveLists() {
+    const { meta, lists } = this.trip!;
+    this.changed();
+    return this.save(() => this.session!.vault.put(`lists:${meta.id}`, lists));
+  }
+
+  addEntries(kind: ListKind, entries: ListEntry[]) {
+    const list = this.trip!.lists[kind];
+    list.push(...entries.slice(0, Math.max(0, MAX_ENTRIES - list.length)));
+    return this.saveLists();
+  }
+
+  updateEntry(kind: ListKind, id: string, patch: Partial<ListEntry>) {
+    const lists = this.trip!.lists;
+    lists[kind] = lists[kind].map((e) => {
+      if (e.id !== id) return e;
+      const next = { ...e, ...patch };
+      for (const k of ['for', 'qty', 'at', 'done'] as const) if (!next[k]) delete next[k];
+      return next;
+    });
+    return this.saveLists();
+  }
+
+  removeEntry(kind: ListKind, id: string) {
+    const lists = this.trip!.lists;
+    lists[kind] = lists[kind].filter((e) => e.id !== id);
+    return this.saveLists();
+  }
+
   // ---- tickets (only on this phone, never synced) -----------------------
 
   readTicket(item: string, trip = this.trip!.meta.id) {
@@ -528,7 +574,7 @@ class App {
 
   private compact(trip: OpenTrip): Archived {
     const { id, name, start, end } = trip.meta;
-    return archive({ id, name, start, end, people: trip.data.members.map((m) => m.name) }, trip.state);
+    return archive({ id, name, start, end, people: trip.data.members.map((m) => m.name) }, trip.state, trip.lists);
   }
 
   /** Every item this trip ever had, so tickets of deleted items go too. */
@@ -542,6 +588,7 @@ class App {
     await vault.put(`archive:${trip.meta.id}`, compact);
     for (const item of this.itemIds(trip)) await vault.remove(`ticket:${trip.meta.id}:${item}`);
     await vault.remove(`trip:${trip.meta.id}`);
+    await vault.remove(`lists:${trip.meta.id}`);
     trip.meta.archived = { at: compact.archivedAt, size: utf8(JSON.stringify(compact)).length };
     delete trip.meta.code;
     await this.saveTrips(this.trips);
@@ -574,6 +621,7 @@ class App {
       this.trip = undefined;
     }
     await vault.remove(`trip:${id}`);
+    await vault.remove(`lists:${id}`);
     await vault.remove(`archive:${id}`);
     await this.saveTrips(this.trips.filter((t) => t.id !== id));
     this.reset({ to: 'trips' });

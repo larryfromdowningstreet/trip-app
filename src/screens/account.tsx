@@ -7,7 +7,7 @@ import { type TripMeta, daysBetween, placeFor, tripRange, when, dateOf } from '.
 import { checkPin } from '../core/pin';
 import type { ThemeSetting } from '../core/sun';
 import { Icon } from '../ui/icons';
-import { BackBar, Confirm, PinBoxes, Sheet, Tabs } from '../ui/kit';
+import { BackBar, Confirm, PinBoxes, Sheet, Tabs, useAsync } from '../ui/kit';
 import { DeleteTrip, kb } from './finished';
 import { OfflineChip } from './start';
 
@@ -77,6 +77,8 @@ export function NewTrip() {
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState(today);
   const [busy, setBusy] = useState(false);
+  const previous = useAsync(() => app.previousPacking(), []);
+  const [copy, setCopy] = useState(true);
   const length = daysBetween(start, end) + 1;
   const problem = !start || !end ? '請選擇日期' : length < 1 ? '回程日要在出發日之後' : length > 60 ? '一趟旅程最多 60 天' : '';
   const ready = name.trim() && !problem && !busy;
@@ -85,7 +87,7 @@ export function NewTrip() {
     e.preventDefault();
     if (!ready) return;
     setBusy(true);
-    await app.createTrip(name, start, end);
+    await app.createTrip(name, start, end, copy ? previous?.entries : undefined);
   };
 
   return (
@@ -108,6 +110,15 @@ export function NewTrip() {
           </label>
         </div>
         <p class={problem ? 'error' : 'hint'}>{problem || `共 ${length} 天。你會是這趟旅程的主揪，之後可以再加入其他主揪和成員。`}</p>
+        {previous && (
+          <label class="card pad spread" style={{ alignItems: 'flex-start' }}>
+            <span class="stack" style={{ gap: '2px' }}>
+              <span>從「{previous.name}」複製行前準備清單</span>
+              <span class="small muted">共 {previous.entries.length} 項，複製過來全部改回沒打勾</span>
+            </span>
+            <input type="checkbox" class="big-check" checked={copy} onChange={() => setCopy(!copy)} />
+          </label>
+        )}
         <button class="btn primary tall push-end" disabled={!ready}>{busy ? '建立中…' : '建立'}</button>
       </form>
     </div>
@@ -160,8 +171,11 @@ export function Settings() {
             <h2 class="section-label">這趟旅程：{trip.name}</h2>
             <div class="card rows">
               {app.isOrganizer && (
-                <button class="row" onClick={() => app.go({ to: 'bulk' })}>批次匯入行程（可請 AI 整理）<span class="end"><Icon name="next" /></span></button>
+                <button class="row" onClick={() => app.go({ to: 'members' })}>成員<span class="end">{app.trip!.data.members.length} 人<Icon name="next" /></span></button>
               )}
+              <button class="row" onClick={() => app.go({ to: 'bulk' })}>
+                {app.isOrganizer ? '批次匯入行程和清單（可請 AI 整理）' : '批次匯入清單（可請 AI 整理）'}<span class="end"><Icon name="next" /></span>
+              </button>
               <button class="row" onClick={() => app.go({ to: 'export', id: trip.id })}>匯出備份<span class="end"><Icon name="next" /></span></button>
               <button class="row" onClick={() => setArchiving(true)}>封存這趟旅程<span class="end"><Icon name="next" /></span></button>
               <button class="row danger-text" onClick={() => setDeleting(true)}>從這支手機刪除</button>

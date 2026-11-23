@@ -63,18 +63,18 @@ export function TripBar() {
   );
 }
 
-const TABS: { to: 'main' | 'overview' | 'sync' | 'members' | 'settings'; label: string; icon: IconName; organizer?: boolean }[] = [
+const TABS: { to: 'main' | 'overview' | 'sync' | 'lists' | 'settings'; label: string; icon: IconName }[] = [
   { to: 'main', label: '下一站', icon: 'pin' },
   { to: 'overview', label: '行程', icon: 'list' },
   { to: 'sync', label: '同步', icon: 'sync' },
-  { to: 'members', label: '成員', icon: 'people', organizer: true },
+  { to: 'lists', label: '清單', icon: 'checklist' },
   { to: 'settings', label: '設定', icon: 'gear' },
 ];
 
-/** Bottom tabs inside a trip. Members (view-only) have no 成員 tab. */
+/** Bottom tabs inside a trip, the same five for everyone. 成員 is inside 設定. */
 export function Tabs() {
   const here = app.route.to;
-  const tabs = TABS.filter((t) => !t.organizer || app.isOrganizer);
+  const tabs = TABS;
   const at = tabs.findIndex((t) => t.to === here);
   // Tabs are pages left to right: going from the 1st to the 4th turns three pages.
   const open = (i: number) => {

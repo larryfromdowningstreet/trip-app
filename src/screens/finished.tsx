@@ -1,5 +1,6 @@
 // Finished trips: the read-only archive view, backups out and back in, and deleting with the PIN.
 
+import { KINDS, entryDetail, ordered } from '../core/lists';
 import { shopLine, shopsOf } from '../core/shops';
 import { Fragment } from 'preact';
 import { useState } from 'preact/hooks';
@@ -42,7 +43,26 @@ export function ArchivedTrip({ id }: { id: string }) {
             <ol class="card plan">{on(d).length ? on(d).map(row) : <li class="empty" style={{ padding: '16px' }}>沒有安排</li>}</ol>
           </Fragment>
         ))}
-        {loose.length > 0 && (<><h2 class="section-label">沒排日期</h2><ol class="card plan">{loose.map(row)}</ol></>)}
+        {loose.length > 0 && (<><h2 class="section-label">口袋名單</h2><ol class="card plan">{loose.map(row)}</ol></>)}
+        {trip?.lists && KINDS.filter(([k]) => trip.lists![k].length).map(([k, name]) => {
+          const { todo, done } = ordered(trip.lists![k]);
+          return (
+            <Fragment key={k}>
+              <h2 class="section-label">我的{name}清單 · {done.length}/{todo.length + done.length}</h2>
+              <ul class="card plan">
+                {[...todo, ...done].map((e) => (
+                  <li class="plan-row" key={e.id}>
+                    <span aria-label={e.done ? '已完成' : '未完成'}>{e.done ? <Icon name="check" /> : '　'}</span>
+                    <span class="name">
+                      {e.text}
+                      {(entryDetail(e) || e.where) && <span class="tiny muted" style={{ display: 'block' }}>{[entryDetail(e), e.where && `在${e.where}買`].filter(Boolean).join('　')}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Fragment>
+          );
+        })}
         <button class="btn soft tall push-end" onClick={() => app.go({ to: 'export', id })}>匯出備份</button>
       </main>
     </div>

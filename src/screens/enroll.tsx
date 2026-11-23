@@ -119,7 +119,7 @@ export function Enroll({ join }: { join?: boolean }) {
             <h1 class="title">請大家掃邀請</h1>
             <p class="small muted">新加入的人掃了就會加入「{app.trip!.meta.name}」。已經在旅程裡的人也掃一下，名單和角色才會一致。</p>
             <QrShow bytes={invite} />
-            <button class="btn primary tall push-end" onClick={() => app.reset({ to: 'members' })}>大家都掃好了</button>
+            <button class="btn primary tall push-end" onClick={() => (app.reset({ to: 'settings' }), app.go({ to: 'members' }))}>大家都掃好了</button>
           </>
         )}
 
@@ -140,7 +140,7 @@ export function Enroll({ join }: { join?: boolean }) {
             {result.skipped.length > 0 && (
               <p class="note warn"><Icon name="warn" />{result.skipped.join('、')}這次沒有和你互掃，先不加入。下次見面再互掃一次。</p>
             )}
-            <button class="btn primary tall push-end" onClick={() => app.reset(result.joined ? { to: 'sync' } : { to: 'members' })}>
+            <button class="btn primary tall push-end" onClick={() => (result.joined ? app.reset({ to: 'sync' }) : (app.reset({ to: 'settings' }), app.go({ to: 'members' })))}>
               {result.joined ? '接著同步，拿到行程' : '回到成員'}
             </button>
           </>

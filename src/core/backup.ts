@@ -1,7 +1,7 @@
 // Backup files: a standard AES-256 encrypted zip (the WinZip AES format), which 7-Zip, WinRAR, Keka and
 // most phone file managers open with the password. Inside:
-//   行程.txt    the itinerary as plain text
-//   trip.json   the same in the archive format, for importing back into the app
+//   行程.txt    the itinerary as plain text, then this person's shopping and packing lists
+//   trip.json   the same in the archive format (lists included), for importing back into the app
 //   票券/…      ticket screenshots, if chosen
 // The password must be at least 8 characters: unlike the PIN, a file can be guessed at without limits.
 

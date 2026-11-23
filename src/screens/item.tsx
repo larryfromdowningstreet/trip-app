@@ -18,7 +18,7 @@ export function Edit({ item: id, day }: { item?: string; day?: string }) {
   const [form, setForm] = useState(() => ({
     type: text(v.type) || 'sight',
     title: text(v.title),
-    date: text(v.date) || day || app.days[0],
+    date: id ? (app.days.includes(text(v.date)) ? text(v.date) : '') : day ?? app.days[0], // '' = the pocket list
     start: text(v.start),
     end: text(v.end),
     addressLocal: text(v.addressLocal),
@@ -91,6 +91,7 @@ export function Edit({ item: id, day }: { item?: string; day?: string }) {
           <label class="field">日期
             <select class="input" value={form.date} onChange={set('date')}>
               {app.days.map((d) => <option value={d}>{shortDay(d)}（{weekday(d)}）</option>)}
+              <option value="">口袋名單</option>
             </select>
           </label>
           <label class="field">開始<input class="input" type="time" value={form.start} onInput={set('start')} /></label>

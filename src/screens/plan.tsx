@@ -4,13 +4,13 @@ import { Fragment } from 'preact';
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { app } from '../app/store';
 import {
-  countdown, dateOf, daysBetween, itemsOn, longDay, mapLink, nextIndex, shortDay, timeRange, undated,
+  countdown, dateOf, daysBetween, itemsOn, longDay, mapLink, nextIndex, shortDay, timeRange, undated, weekday,
 } from '../app/trip';
 import type { ItemState } from '../core/merge';
 import { shopsOf } from '../core/shops';
 import { isApple, openOutside } from '../platform/device';
 import { Icon } from '../ui/icons';
-import { Tabs, TripBar, useNow } from '../ui/kit';
+import { Sheet, Tabs, TripBar, useNow } from '../ui/kit';
 
 /** The day to show: today during the trip, the first day before it, the last day after it. */
 function currentDay(days: string[], now: Date): string {
@@ -25,19 +25,28 @@ function dayLabel(days: string[], day: string, now: Date): string {
   return `第 ${days.indexOf(day) + 1} 天 · ${longDay(day)}`;
 }
 
-const facts = (v: Record<string, unknown>) => {
+/** My own shopping list entries to buy at this stop (not yet bought). */
+const toBuyAt = (item: string) => app.trip?.lists.shopping.filter((e) => !e.done && e.at?.item === item) ?? [];
+
+const facts = (v: Record<string, unknown>, id?: string) => {
   const all: [string, unknown][] = [['地址', v.addressLocal], ['交通', v.transport], ['預約', v.booking], ['想做的事', v.note]];
   const list = all.filter((f): f is [string, string] => typeof f[1] === 'string' && f[1] !== '');
   const shops = shopsOf(v).length;
   if (shops) list.push(['店家', `${shops} 家`]);
+  const buy = id ? toBuyAt(id).length : 0;
+  if (buy) list.push(['要買', `${buy} 樣`]);
   return list;
 };
 
 function Facts({ item }: { item: ItemState }) {
   const shops = shopsOf(item.values);
+  const buy = toBuyAt(item.id);
+  const buyAt = (shop?: string) => buy.filter((e) => e.at?.shop === shop && (!shop || shops.some((s) => s.id === shop)));
+  const loose = buy.filter((e) => !e.at?.shop || !shops.some((s) => s.id === e.at?.shop));
+  const names = (list: typeof buy) => list.map((e) => (e.qty ? `${e.text} ${e.qty}` : e.text)).join('、');
   return (
     <dl class="facts">
-      {facts(item.values).filter(([k]) => k !== '店家').map(([k, x]) => <Fragment key={k}><dt>{k}</dt><dd>{x}</dd></Fragment>)}
+      {facts(item.values).filter(([k]) => k !== '店家' && k !== '要買').map(([k, x]) => <Fragment key={k}><dt>{k}</dt><dd>{x}</dd></Fragment>)}
       {shops.length > 0 && (
         <>
           <dt>店家</dt>
@@ -47,12 +56,14 @@ function Facts({ item }: { item: ItemState }) {
                 <li key={s.id}>
                   <b>{s.name}</b>{s.where && <span class="muted">　{s.where}</span>}
                   {s.buy && <span class="small muted" style={{ display: 'block' }}>{s.buy}</span>}
+                  {buyAt(s.id).length > 0 && <span class="small my-buy">我要買：{names(buyAt(s.id))}</span>}
                 </li>
               ))}
             </ul>
           </dd>
         </>
       )}
+      {loose.length > 0 && <><dt>我要買</dt><dd>{names(loose)}</dd></>}
     </dl>
   );
 }
@@ -153,10 +164,10 @@ function StopCard({ item, kind, when, main }: { item: ItemState; kind: string; w
         <button class="btn soft" onClick={() => app.go({ to: 'driver', item: item.id })}><Icon name="car" />給司機看</button>
         <button class="btn soft" onClick={() => app.go({ to: 'ticket', item: item.id })}><Icon name="ticket" />我的票券</button>
       </div>
-      {facts(v).length > 0 ? (
+      {facts(v, item.id).length > 0 ? (
         <>
           <button class="more" aria-expanded={open} onClick={() => setOpen(!open)}>
-            {open ? '收起詳細' : `詳細：${facts(v).map(([k]) => k).join('、')}`}
+            {open ? '收起詳細' : `詳細：${facts(v, item.id).map(([k]) => k).join('、')}`}
             <Icon name="down" size={16} />
           </button>
           {open && <Facts item={item} />}
@@ -196,7 +207,7 @@ export function Overview({ day: asked }: { day?: string }) {
           <span class="name">{String(item.values.title ?? '（未命名）')}</span>
           {tag}
         </button>
-        {open === item.id && <OpenItem item={item} />}
+        {open === item.id && <OpenItem item={item} onScheduled={(d) => (setDay(d), app.remember({ day: d }), setOpen(item.id))} />}
       </Fragment>
     );
   };
@@ -233,7 +244,8 @@ export function Overview({ day: asked }: { day?: string }) {
         </div>
         {loose.length > 0 && (
           <>
-            <h2 class="section-label">還沒排日期</h2>
+            <h2 class="section-label">口袋名單</h2>
+            <p class="tiny muted" style={{ marginTop: '-6px' }}>還沒排進日期的地方，想好了再排</p>
             <div class="card plan">{loose.map(row)}</div>
           </>
         )}
@@ -249,17 +261,45 @@ export function Overview({ day: asked }: { day?: string }) {
   );
 }
 
-function OpenItem({ item }: { item: ItemState }) {
+function OpenItem({ item, onScheduled }: { item: ItemState; onScheduled?: (day: string) => void }) {
   const nav = mapLink(item.values, true, isApple());
   return (
     <div class="open-item">
-      {facts(item.values).length > 0 && <Facts item={item} />}
+      {facts(item.values, item.id).length > 0 && <Facts item={item} />}
       <div class="btns">
         {nav && <a class="btn" href={nav} target="_blank" rel="noopener noreferrer" onClick={(e) => openOutside(e, nav)}><Icon name="navigate" />導航</a>}
         <button class="btn" onClick={() => app.go({ to: 'driver', item: item.id })}><Icon name="car" />給司機看</button>
         <button class="btn" onClick={() => app.go({ to: 'ticket', item: item.id })}><Icon name="ticket" />票券</button>
         {app.isOrganizer && <button class="btn" onClick={() => app.go({ to: 'edit', item: item.id })}>編輯</button>}
       </div>
+      {app.isOrganizer && !app.days.includes(String(item.values.date ?? '')) && onScheduled && <ScheduleDay item={item} onDone={onScheduled} />}
     </div>
+  );
+}
+
+/** From the pocket list onto a day: pick the day, the item keeps everything else. */
+function ScheduleDay({ item, onDone }: { item: ItemState; onDone: (day: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const pick = async (d: string) => {
+    setOpen(false);
+    await app.saveItem(item.id, { date: d });
+    onDone(d);
+  };
+  return (
+    <>
+      <button class="btn primary" onClick={() => setOpen(true)}><Icon name="plus" />排進第幾天</button>
+      {open && (
+        <Sheet onClose={() => setOpen(false)}>
+          <h2>「{String(item.values.title ?? '')}」排進哪一天？</h2>
+          <div class="day-pick">
+            {app.days.map((d, i) => (
+              <button class="btn line" onClick={() => pick(d)}>第 {i + 1} 天<small>{shortDay(d)}（{weekday(d)}）</small></button>
+            ))}
+          </div>
+          <p class="hint">時間可以之後再到「編輯」裡填。</p>
+          <button class="btn line" onClick={() => setOpen(false)}>取消</button>
+        </Sheet>
+      )}
+    </>
   );
 }

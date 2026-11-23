@@ -1,17 +1,29 @@
 // Adding many itinerary items at once, and the instructions that let an AI produce them.
 //
 // Two ways in, both pasted as text (or read from a file):
-//   JSON   what an AI is asked to write: {"items": [ {...}, ... ]} or just the array
+//   JSON   what an AI is asked to write: {"items": [ {...}, ... ], "shopping": [...], "packing": [...]} or just the array
+//          (shopping and packing go into this person's own lists, which are never synced)
 //   table  rows copied from a spreadsheet: a header row, then tab- or comma-separated values
 // Everything is checked like any outside input: known fields only, plain types, sane lengths.
 
+import { MAX_ENTRIES } from './lists';
 import { MAX_SHOPS, SHOP, newShopId, shopValue } from './shops';
 
 export const MAX_ITEMS = 500;
 
 export interface Parsed {
   items: Record<string, unknown>[];
+  shopping: ListDraft[];
+  packing: ListDraft[];
   problems: string[]; // one line per row that was skipped or changed, for the preview
+}
+
+/** A list entry as written; `shop` names a stop or a shop of one, matched against the itinerary when imported. */
+export interface ListDraft {
+  text: string;
+  for?: string;
+  qty?: string;
+  shop?: string;
 }
 
 /** Field name as written (English key or Chinese heading) → item field. */
@@ -37,9 +49,12 @@ const TYPES: Record<string, string> = {
 const LIMITS: Record<string, number> = { title: 80, addressLocal: 200, transport: 200, booking: 200, note: 1000 };
 
 export function parseBulk(text: string, days: string[]): Parsed {
-  const rows = text.trim().startsWith('{') || text.trim().startsWith('[') || /```/.test(text) ? fromJson(text) : fromTable(text);
-  if (!rows) return { items: [], problems: ['看不懂這段內容：請貼上 AI 給的 JSON，或試算表複製的表格（第一列要是欄位名稱）。'] };
-  const out: Parsed = { items: [], problems: [] };
+  const json = text.trim().startsWith('{') || text.trim().startsWith('[') || /```/.test(text) ? fromJson(text) : undefined;
+  const rows = json ? json.rows : fromTable(text);
+  const out: Parsed = { items: [], shopping: json?.shopping ?? [], packing: json?.packing ?? [], problems: [] };
+  if (!rows || (!rows.length && !out.shopping.length && !out.packing.length)) {
+    return { ...out, problems: ['看不懂這段內容：請貼上 AI 給的 JSON，或試算表複製的表格（第一列要是欄位名稱）。'] };
+  }
   rows.slice(0, MAX_ITEMS).forEach((raw, i) => {
     const { item, problems } = clean(raw, days);
     const label = `第 ${i + 1} 筆${item.title ? `「${item.title}」` : ''}`;
@@ -50,15 +65,41 @@ export function parseBulk(text: string, days: string[]): Parsed {
   return out;
 }
 
-function fromJson(text: string): Record<string, unknown>[] | undefined {
+function fromJson(text: string): { rows: Record<string, unknown>[]; shopping: ListDraft[]; packing: ListDraft[] } | undefined {
   const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(text);
   try {
     const data = JSON.parse(fenced ? fenced[1] : text);
-    const list = Array.isArray(data) ? data : data?.items;
-    return Array.isArray(list) ? list.filter((x) => x && typeof x === 'object' && !Array.isArray(x)) : undefined;
+    const list = Array.isArray(data) ? data : data?.items ?? [];
+    if (!Array.isArray(list)) return undefined;
+    const lists = Array.isArray(data) ? {} : (data ?? {});
+    return {
+      rows: list.filter((x) => x && typeof x === 'object' && !Array.isArray(x)),
+      shopping: drafts(lists.shopping ?? lists.購物 ?? lists.購物清單),
+      packing: drafts(lists.packing ?? lists.行前準備 ?? lists.要帶的東西),
+    };
   } catch {
     return undefined;
   }
+}
+
+/** List entries as an AI writes them: names, or {name, for, qty, shop}. */
+function drafts(x: unknown): ListDraft[] {
+  if (!Array.isArray(x)) return [];
+  const str = (y: unknown, max: number) => (typeof y === 'string' || typeof y === 'number' ? String(y).trim().slice(0, max) : '');
+  return x.slice(0, MAX_ENTRIES).map((e): ListDraft => {
+    if (e && typeof e === 'object' && !Array.isArray(e)) {
+      const o = e as Record<string, unknown>;
+      const d: ListDraft = { text: str(o.name ?? o.text ?? o.名稱, 80) };
+      const forWho = str(o.for ?? o.給誰, 30);
+      const qty = str(o.qty ?? o.數量, 20);
+      const shop = str(o.shop ?? o.where ?? o.在哪買, 80);
+      if (forWho) d.for = forWho;
+      if (qty) d.qty = qty;
+      if (shop) d.shop = shop;
+      return d;
+    }
+    return { text: str(e, 80) };
+  }).filter((d) => d.text);
 }
 
 function fromTable(text: string): Record<string, unknown>[] | undefined {
@@ -120,8 +161,8 @@ function clean(raw: Record<string, unknown>, days: string[]) {
   const d = date(v.date) ?? (Number.isInteger(day) && day >= 1 && day <= days.length ? days[day - 1] : undefined);
   if (d) item.date = d;
   if (v.date !== undefined || v.day !== undefined) {
-    if (!d) problems.push(`看不懂日期「${String(v.date ?? v.day)}」，先放在「還沒排日期」`);
-    else if (!days.includes(d)) problems.push(`${d} 不在這趟旅程的日期內`);
+    if (!d) problems.push(`看不懂日期「${String(v.date ?? v.day)}」，先放在「口袋名單」`);
+    else if (!days.includes(d)) problems.push(`${d} 不在這趟旅程的日期內，先放在「口袋名單」`);
   }
   for (const f of ['start', 'end'] as const) {
     if (v[f] === undefined) continue;
@@ -171,23 +212,24 @@ export function withoutDuplicates(items: Parsed['items'], existing: Record<strin
   return { fresh, duplicates: items.length - fresh.length };
 }
 
-/** The text to give an AI together with notes, bookings or a messy plan: it explains exactly what to write back. */
-export function aiInstructions(trip: { name: string; days: string[] }, current: Record<string, unknown>[] = []): string {
+/** The text to give an AI together with notes, bookings or a messy plan: it explains exactly what to write back.
+ *  `items: false` (a member who cannot edit the itinerary) asks only for the two personal lists. */
+export function aiInstructions(
+  trip: { name: string; days: string[] },
+  current: Record<string, unknown>[] = [],
+  opts: { items?: boolean; lists?: { shopping: string[]; packing: string[] } } = {},
+): string {
+  const withItems = opts.items !== false;
   const daysList = trip.days.map((d, i) => `第 ${i + 1} 天 = ${d}`).join('、');
-  const now = current.length
+  const now = withItems && current.length
     ? `\n目前已經排好的行程如下，不要重複列出，時間也不要和它們衝突：\n${JSON.stringify(current.map(({ date: d, start, end, title }) => ({ date: d, start, end, title })))}\n`
     : '';
-  return `請把我接下來提供的資料（筆記、訂位確認信、網頁內容等）整理成旅遊行程，只輸出一個 JSON 程式碼區塊，不要其他說明。
-
-旅程：${trip.name}
-日期：${daysList}
-${now}
-格式：
-\`\`\`json
-{
-  "items": [
+  const have = opts.lists && (opts.lists.shopping.length || opts.lists.packing.length)
+    ? `\n我的清單裡已經有這些，不要重複：\n購物：${opts.lists.shopping.join('、') || '（無）'}\n行前準備：${opts.lists.packing.join('、') || '（無）'}\n`
+    : '';
+  const itemFormat = `  "items": [
     {
-      "date": "YYYY-MM-DD（必須在上面的日期內）",
+      "date": "YYYY-MM-DD（必須在上面的日期內；還沒決定哪天去就省略，會放進口袋名單）",
       "start": "HH:MM（24 小時制，沒有就省略）",
       "end": "HH:MM（沒有就省略）",
       "type": "sight 景點 | transport 交通 | meal 用餐 | stay 住宿 | gather 集合，擇一填英文",
@@ -200,18 +242,39 @@ ${now}
       "note": "想做的事、要提醒大家的事",
       "shops": [{"name": "店名", "where": "樓層或位置（沒有就省略）", "buy": "想買什麼（沒有就省略）"}]
     }
-  ]
+  ],
+`;
+  const listFormat = `  "shopping": [{"name": "要買的東西（必填）", "for": "給誰（沒有就省略）", "qty": "數量，例如 2 盒（沒有就省略）", "shop": "在哪買：行程名稱或店名（沒有就省略）"}],
+  "packing": ["要帶的東西", "…"]`;
+  const rules = withItems
+    ? `1. 一個地點或一段移動是一筆；同一天依時間排序。購物中心或商店街裡想逛的店放在該筆的 shops，不要拆成很多筆。
+2. 沒有把握的欄位就省略，不要猜，尤其是座標、地址和訂位資訊。座標請確認是該地點本身，不要用城市中心代替。
+3. 要買的東西放 shopping，要帶的東西（行李、證件、藥品等）放 packing；資料裡沒有就給空陣列。
+4. 只使用上面列出的欄位名稱，數字不要加引號。`
+    : `1. 要買的東西放 shopping，要帶的東西（行李、證件、藥品等）放 packing；資料裡沒有就給空陣列。
+2. shop 只寫資料裡提到的地點或店名，沒有就省略。
+3. 只使用上面列出的欄位名稱。`;
+  const example = withItems
+    ? `{"items":[{"date":"${trip.days[0] ?? '2027-03-10'}","start":"13:30","end":"15:00","type":"sight","title":"清水寺","addressLocal":"京都府京都市東山区清水1丁目294","lat":34.9949,"lng":135.785,"transport":"市巴士 206 號到五條坂，步行 10 分鐘"}],"shopping":[{"name":"七味粉","for":"媽媽","qty":"2 罐","shop":"清水寺"}],"packing":["護照","轉接頭"]}`
+    : `{"shopping":[{"name":"七味粉","for":"媽媽","qty":"2 罐"}],"packing":["護照","轉接頭"]}`;
+  return `請把我接下來提供的資料（筆記、${withItems ? '訂位確認信、網頁內容' : '購物清單、行李清單'}等）整理${withItems ? '成旅遊行程和清單' : '成清單'}，只輸出一個 JSON 程式碼區塊，不要其他說明。
+
+旅程：${trip.name}
+日期：${daysList}
+${now}${have}
+格式：
+\`\`\`json
+{
+${withItems ? itemFormat : ''}${listFormat}
 }
 \`\`\`
 
 規則：
-1. 一個地點或一段移動是一筆；同一天依時間排序。購物中心或商店街裡想逛的店放在該筆的 shops，不要拆成很多筆。
-2. 沒有把握的欄位就省略，不要猜，尤其是座標、地址和訂位資訊。座標請確認是該地點本身，不要用城市中心代替。
-3. 只使用上面列出的欄位名稱，數字不要加引號。
+${rules}
 
 範例：
 \`\`\`json
-{"items":[{"date":"${trip.days[0] ?? '2027-03-10'}","start":"13:30","end":"15:00","type":"sight","title":"清水寺","addressLocal":"京都府京都市東山区清水1丁目294","lat":34.9949,"lng":135.785,"transport":"市巴士 206 號到五條坂，步行 10 分鐘"}]}
+${example}
 \`\`\`
 
 我的資料如下：

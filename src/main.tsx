@@ -12,6 +12,7 @@ import { Enroll } from './screens/enroll';
 import { ArchivedTrip, Export, Import } from './screens/finished';
 import { Conflicts, Members } from './screens/people';
 import { Sync } from './screens/sync';
+import { ListsTab } from './screens/lists';
 import { NextStop, Overview } from './screens/plan';
 import { InstallGuide, Lock, Onboarding, Wiped } from './screens/start';
 
@@ -39,6 +40,7 @@ function Screen({ route }: { route: Route }) {
     case 'main': return <NextStop />;
     case 'overview': return <Overview day={route.day} />;
     case 'sync': return <Sync />;
+    case 'lists': return <ListsTab />;
     case 'members': return <Members />;
     case 'conflicts': return <Conflicts />;
     case 'edit': return <Edit item={route.item} day={route.day} />;

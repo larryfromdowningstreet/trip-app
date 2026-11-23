@@ -386,3 +386,25 @@ details.hint summary { cursor: pointer; color: var(--primary); padding: 4px 0; }
 .shop-row + .shop-row { padding-top: 8px; border-top: 1px solid var(--line); }
 .shop-edit legend { float: left; width: 100%; padding: 0; margin-bottom: 4px; }
 .shop-edit legend + * { clear: both; }
+
+/* 清單 */
+.list-kinds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 4px 20px 12px; }
+.list-kinds button {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text-2); font-size: 16px;
+}
+.list-kinds small { font-size: 13px; }
+.list-kinds button[aria-selected='true'] { border: 2px solid var(--accent); background: var(--soft); color: var(--primary); font-weight: 700; }
+.private-note { display: flex; align-items: center; gap: 6px; }
+.add-row { display: flex; gap: 8px; }
+.add-row .input { flex: 1; min-width: 0; }
+.add-row .btn { flex: 0 0 auto; padding: 0 18px; }
+.check-row { display: flex; align-items: center; gap: 4px; padding-left: 14px; }
+.check-text { flex: 1; min-width: 0; min-height: 52px; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  padding: 8px 16px 8px 8px; border: 0; background: none; text-align: left; font-size: 16px; color: var(--text); }
+.check-text small { font-size: 13px; color: var(--text-2); }
+.check-row.done .check-text > span { color: var(--text-2); text-decoration: line-through; }
+.my-buy { display: block; margin-top: 2px; color: var(--primary); font-weight: 700; }
+.day-pick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-height: 50vh; overflow-y: auto; }
+.day-pick .btn { flex-direction: column; gap: 0; min-height: 56px; }
+.day-pick small { font-size: 12px; font-weight: 400; color: var(--text-2); }
