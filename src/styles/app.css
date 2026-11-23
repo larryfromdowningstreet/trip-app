@@ -52,6 +52,7 @@ fieldset { padding: 0; border: 0; min-width: 0; }
 .bar-title small { display: block; font-size: 12px; font-weight: 400; color: var(--bar-text-2); font-family: var(--sans); }
 .bar-trip { display: flex; align-items: center; gap: 4px; min-height: 44px; min-width: 0; font-size: 17px; font-weight: 700; background: none; border: 0; padding: 0; }
 .bar-trip span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-trip svg { flex-shrink: 0; margin-left: -6px; }
 .bar-status { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px; font-size: 13px; color: var(--bar-text-2); background: none; border: 0; font-family: var(--sans); }
 .bar-status::before { content: ''; width: 10px; height: 10px; border-radius: 5px; background: var(--bar-ok); }
 .bar-status.never::before { background: var(--ring); }

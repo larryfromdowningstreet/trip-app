@@ -43,15 +43,15 @@ export function BackBar({ title, sub, action }: { title: string; sub?: string; a
   );
 }
 
-/** Top bar inside a trip: trip name (opens the trip list) and sync status. */
+/** Top bar inside a trip: a back arrow with the trip name (leaves to the trip list) and sync status. */
 export function TripBar() {
   const trip = app.trip!;
   const synced = trip.meta.lastSync;
   return (
     <header class="bar">
-      <button class="bar-trip" onClick={() => app.go({ to: 'trips' })}>
+      <button class="bar-trip" aria-label={`離開「${trip.meta.name}」，回到我的旅程`} onClick={() => app.reset({ to: 'trips' })}>
+        <Icon name="back" size={22} />
         <span>{trip.meta.name}</span>
-        <Icon name="down" />
       </button>
       <div class="bar-side">
         <button class={synced ? 'bar-status' : 'bar-status never'} onClick={() => app.go({ to: 'sync' })}
