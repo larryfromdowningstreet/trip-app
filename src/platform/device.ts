@@ -32,7 +32,9 @@ export function useWakeLock(): boolean {
 /** Running inside the Android app (Capacitor) rather than a browser. */
 export const isNative = () => !!(window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
 
-export const isApple = () => /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
+/** iPhone or iPad. An iPad asking for desktop sites calls itself a Mac, but a Mac has no touch screen. */
+export const isApple = () =>
+  /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
 export const isInstalled = () =>
   matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;

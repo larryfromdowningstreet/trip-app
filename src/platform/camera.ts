@@ -11,13 +11,26 @@ const Native = (globalThis as { BarcodeDetector?: DetectorClass }).BarcodeDetect
 export async function startScanner(
   video: HTMLVideoElement,
   onText: (text: string) => void,
+  onEnded?: () => void,
 ): Promise<() => void> {
+  // Missing on very old iPhones, in some in-app browsers, and on pages not served over https.
+  if (!navigator.mediaDevices?.getUserMedia) throw new DOMException('no camera API', 'NoCameraApi');
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: 'environment', width: { ideal: 1280 } },
     audio: false,
   });
+  const release = () => stream.getTracks().forEach((t) => t.stop());
   video.srcObject = stream;
-  await video.play();
+  try {
+    await video.play();
+  } catch (e) {
+    release(); // otherwise the camera (and the iPhone's green dot) stays on with nothing showing
+    video.srcObject = null;
+    throw e;
+  }
+  // iPhone stops the camera when the app goes to the background or another app takes it.
+  const track = stream.getVideoTracks()[0];
+  if (track && onEnded) track.addEventListener('ended', onEnded);
 
   const detector = Native ? new Native({ formats: ['qr_code'] }) : undefined;
   const canvas = document.createElement('canvas');
@@ -49,7 +62,8 @@ export async function startScanner(
 
   return () => {
     running = false;
-    stream.getTracks().forEach((t) => t.stop());
+    if (track && onEnded) track.removeEventListener('ended', onEnded);
+    release();
     video.srcObject = null;
   };
 }
