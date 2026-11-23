@@ -7,6 +7,7 @@ import { type Route, app } from './app/store';
 import { isApple, isInstalled } from './platform/device';
 import { ChangePin, NewTrip, Settings, Trips } from './screens/account';
 import { Driver, Edit, Ticket } from './screens/item';
+import { Bulk } from './screens/bulk';
 import { Enroll } from './screens/enroll';
 import { ArchivedTrip, Export, Import } from './screens/finished';
 import { Conflicts, Members } from './screens/people';
@@ -44,6 +45,7 @@ function Screen({ route }: { route: Route }) {
     case 'driver': return <Driver item={route.item} />;
     case 'ticket': return <Ticket item={route.item} />;
     case 'enroll': return <Enroll />;
+    case 'bulk': return <Bulk />;
   }
 }
 

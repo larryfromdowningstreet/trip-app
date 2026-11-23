@@ -86,3 +86,30 @@ export function openOutside(e: MouseEvent, url: string) {
   e.preventDefault();
   location.href = url;
 }
+
+/** Puts text on the clipboard; falls back to the old way where the clipboard API is not allowed. */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = Object.assign(document.createElement('textarea'), { value: text, readOnly: true });
+    document.body.append(area);
+    area.select();
+    const ok = document.execCommand('copy');
+    area.remove();
+    return ok;
+  }
+}
+
+/** Opens the share sheet with text, e.g. to send it straight into an AI app. False if there is none. */
+export async function shareText(text: string): Promise<boolean> {
+  try {
+    if (isNative()) await (await import('@capacitor/share')).Share.share({ text });
+    else if (navigator.share) await navigator.share({ text });
+    else return false;
+    return true;
+  } catch (e) {
+    return (e as Error).name === 'AbortError' || /cancel/i.test((e as Error).message);
+  }
+}

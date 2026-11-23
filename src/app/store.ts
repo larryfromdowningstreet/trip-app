@@ -30,7 +30,7 @@ export type Route =
   | { to: 'main' } | { to: 'overview'; day?: string } | { to: 'sync' } | { to: 'members' } | { to: 'conflicts' }
   | { to: 'edit'; item?: string; day?: string } | { to: 'driver'; item: string } | { to: 'ticket'; item: string }
   | { to: 'enroll'; join?: boolean }
-  | { to: 'archived'; id: string } | { to: 'export'; id: string } | { to: 'import' };
+  | { to: 'archived'; id: string } | { to: 'export'; id: string } | { to: 'import' } | { to: 'bulk' };
 
 export interface Prefs {
   palette: Palette;
@@ -333,6 +333,12 @@ class App {
         this.write((state, stamp) => setField(state, stamp, id, field, value ?? null));
       }
     }
+    await this.afterEdit();
+  }
+
+  /** Many new items in one go (bulk import): one record each, saved once at the end. */
+  async addItems(list: Record<string, unknown>[]) {
+    for (const values of list) this.write((_, stamp) => addItem(stamp, values));
     await this.afterEdit();
   }
 

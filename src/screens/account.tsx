@@ -159,6 +159,9 @@ export function Settings() {
           <>
             <h2 class="section-label">這趟旅程：{trip.name}</h2>
             <div class="card rows">
+              {app.isOrganizer && (
+                <button class="row" onClick={() => app.go({ to: 'bulk' })}>批次匯入行程（可請 AI 整理）<span class="end"><Icon name="next" /></span></button>
+              )}
               <button class="row" onClick={() => app.go({ to: 'export', id: trip.id })}>匯出備份<span class="end"><Icon name="next" /></span></button>
               <button class="row" onClick={() => setArchiving(true)}>封存這趟旅程<span class="end"><Icon name="next" /></span></button>
               <button class="row danger-text" onClick={() => setDeleting(true)}>從這支手機刪除</button>

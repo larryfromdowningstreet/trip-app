@@ -373,3 +373,5 @@ input[type='time']::-webkit-date-and-time-value, input[type='date']::-webkit-dat
 .archived { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; }
 .archived .trip-card { padding: 0; border: 0; background: none; }
 .big-check { width: 24px; height: 24px; accent-color: var(--primary); flex-shrink: 0; }
+.fab-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.fab-row .fab { align-self: auto; }

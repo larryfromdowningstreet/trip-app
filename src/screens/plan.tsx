@@ -217,7 +217,10 @@ export function Overview({ day: asked }: { day?: string }) {
           </>
         )}
         {app.isOrganizer && (
-          <button class="fab" onClick={() => app.go({ to: 'edit', day })}><Icon name="plus" />新增行程</button>
+          <div class="fab-row">
+            <button class="btn plain" onClick={() => app.go({ to: 'bulk' })}>批次匯入</button>
+            <button class="fab" onClick={() => app.go({ to: 'edit', day })}><Icon name="plus" />新增行程</button>
+          </div>
         )}
       </main>
       <Tabs />
