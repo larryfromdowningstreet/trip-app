@@ -5,10 +5,12 @@
 //   table  rows copied from a spreadsheet: a header row, then tab- or comma-separated values
 // Everything is checked like any outside input: known fields only, plain types, sane lengths.
 
+import { MAX_SHOPS, SHOP, newShopId, shopValue } from './shops';
+
 export const MAX_ITEMS = 500;
 
 export interface Parsed {
-  items: Record<string, string | number>[];
+  items: Record<string, unknown>[];
   problems: string[]; // one line per row that was skipped or changed, for the preview
 }
 
@@ -23,7 +25,8 @@ const ALIASES: Record<string, string> = {
   lat: 'lat', 緯度: 'lat', lng: 'lng', lon: 'lng', 經度: 'lng', coords: 'coords', 座標: 'coords',
   transport: 'transport', 交通: 'transport', 交通方式: 'transport',
   booking: 'booking', 預約: 'booking', 預約資訊: 'booking', 訂位: 'booking',
-  note: 'note', notes: 'note', 備註: 'note', 說明: 'note',
+  note: 'note', notes: 'note', todo: 'note', 備註: 'note', 說明: 'note', 想做的事: 'note',
+  shops: 'shops', 店家: 'shops', 店家清單: 'shops', 想逛的店: 'shops',
 };
 
 const TYPES: Record<string, string> = {
@@ -138,7 +141,26 @@ function clean(raw: Record<string, unknown>, days: string[]) {
     item.lng = lng;
   }
   for (const f of ['addressLocal', 'transport', 'booking', 'note']) text(f);
-  return { item, problems };
+  const out: Record<string, unknown> = item;
+  shopsFrom(v.shops).forEach((s, i) => {
+    const value = shopValue({ ...s, t: i });
+    if (value) out[SHOP + newShopId()] = value;
+  });
+  return { item: out, problems };
+}
+
+/** Shops as an AI writes them ([{name, where, buy}] or names) or a table cell ("店A、店B (3F)"). */
+function shopsFrom(x: unknown): { name: string; where?: string; buy?: string }[] {
+  const str = (y: unknown) => (typeof y === 'string' || typeof y === 'number' ? String(y) : '');
+  const list = Array.isArray(x) ? x : typeof x === 'string' ? x.split(/[、;；\n]/) : [];
+  return list.slice(0, MAX_SHOPS).map((s) => {
+    if (s && typeof s === 'object') {
+      const o = s as Record<string, unknown>;
+      return { name: str(o.name ?? o.店名), where: str(o.where ?? o.位置 ?? o.樓層), buy: str(o.buy ?? o.想買) };
+    }
+    const m = /^(.*?)[（(]([^）)]*)[）)]\s*$/.exec(str(s).trim());
+    return m ? { name: m[1], where: m[2] } : { name: str(s) };
+  }).filter((s) => s.name.trim());
 }
 
 /** Items already in the trip with the same date, start and title are left out, so pasting twice is harmless. */
@@ -175,14 +197,15 @@ ${now}
       "lng": 經度數字,
       "transport": "怎麼過去",
       "booking": "訂位代號、時間、人數等",
-      "note": "其他提醒"
+      "note": "想做的事、要提醒大家的事",
+      "shops": [{"name": "店名", "where": "樓層或位置（沒有就省略）", "buy": "想買什麼（沒有就省略）"}]
     }
   ]
 }
 \`\`\`
 
 規則：
-1. 一個地點或一段移動是一筆；同一天依時間排序。
+1. 一個地點或一段移動是一筆；同一天依時間排序。購物中心或商店街裡想逛的店放在該筆的 shops，不要拆成很多筆。
 2. 沒有把握的欄位就省略，不要猜，尤其是座標、地址和訂位資訊。座標請確認是該地點本身，不要用城市中心代替。
 3. 只使用上面列出的欄位名稱，數字不要加引號。
 

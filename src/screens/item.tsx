@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { app } from '../app/store';
 import { TYPES, driverAsk, formatCoords, longDay, mapLink, parseCoords, placeFor, shortDay, toMinutes, weekday } from '../app/trip';
 import { findPlusCode } from '../core/pluscode';
+import { MAX_SHOPS, SHOP, type Shop, newShopId, shopValue, shopsOf } from '../core/shops';
 import { isApple, openOutside, useWakeLock } from '../platform/device';
 import { Icon } from '../ui/icons';
 import { BackBar, Confirm, Segmented } from '../ui/kit';
@@ -27,6 +28,7 @@ export function Edit({ item: id, day }: { item?: string; day?: string }) {
     note: text(v.note),
     owner: text(v.owner),
   }));
+  const [shops, setShops] = useState<Shop[]>(() => shopsOf(v));
   const [asking, setAsking] = useState(false);
   const [tried, setTried] = useState(false);
   const set = (field: keyof typeof form) => (e: { currentTarget: { value: string } }) =>
@@ -50,7 +52,14 @@ export function Edit({ item: id, day }: { item?: string; day?: string }) {
     setTried(true);
     if (Object.values(problems).some(Boolean)) return;
     const { coords: _, ...rest } = form;
-    await app.saveItem(id, { ...rest, title: form.title.trim(), lat: place?.lat ?? null, lng: place?.lng ?? null });
+    // Each shop is its own field; a shop taken off the list (or left without a name) is cleared.
+    const shopFields: Record<string, unknown> = {};
+    for (const old of shopsOf(v)) shopFields[SHOP + old.id] = null;
+    for (const s of shops) {
+      const value = shopValue(s);
+      if (value) shopFields[SHOP + s.id] = value;
+    }
+    await app.saveItem(id, { ...rest, ...shopFields, title: form.title.trim(), lat: place?.lat ?? null, lng: place?.lng ?? null });
     app.back();
   };
 
@@ -110,9 +119,30 @@ export function Edit({ item: id, day }: { item?: string; day?: string }) {
         </label>
         <label class="field">交通方式<input class="input" value={form.transport} onInput={set('transport')} /></label>
         <label class="field">預約資訊<input class="input" value={form.booking} placeholder="訂位代號、車廂座位" onInput={set('booking')} /></label>
-        <label class="field">備註
-          <textarea class="input" rows={2} value={form.note} placeholder="其他要提醒大家的事" onInput={set('note')} />
+        <label class="field">想做的事
+          <textarea class="input" rows={2} value={form.note} placeholder="例如：看夜景、拍合照、記得帶護照" onInput={set('note')} />
         </label>
+        <fieldset class="field shop-edit">
+          <legend>店家（選填，想逛的店）</legend>
+          {shops.map((s, i) => {
+            const edit = (k: 'name' | 'where' | 'buy') => (e: { currentTarget: { value: string } }) =>
+              setShops(shops.map((x, j) => (j === i ? { ...x, [k]: e.currentTarget.value } : x)));
+            return (
+              <div class="shop-row" key={s.id}>
+                <input class="input" value={s.name} placeholder="店名" aria-label={`第 ${i + 1} 家店名`} onInput={edit('name')} />
+                <input class="input" value={s.where} placeholder="樓層/位置" aria-label={`第 ${i + 1} 家位置`} onInput={edit('where')} />
+                <button type="button" class="icon-btn" aria-label={`移除${s.name || `第 ${i + 1} 家`}`}
+                  onClick={() => setShops(shops.filter((_, j) => j !== i))}><Icon name="close" size={20} /></button>
+                <input class="input buy" value={s.buy} placeholder="想買什麼（選填）" aria-label={`第 ${i + 1} 家想買什麼`} onInput={edit('buy')} />
+              </div>
+            );
+          })}
+          {shops.length < MAX_SHOPS && (
+            <button type="button" class="btn soft" onClick={() => setShops([...shops, { id: newShopId(), name: '', where: '', buy: '', t: Date.now() }])}>
+              <Icon name="plus" />加一家店
+            </button>
+          )}
+        </fieldset>
         {organizers.length > 1 && (
           <label class="field">負責人
             <select class="input" value={form.owner} onChange={set('owner')}>

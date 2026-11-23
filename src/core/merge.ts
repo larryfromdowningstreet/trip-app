@@ -7,6 +7,7 @@
 //   - A delete names every head it saw. If someone edited the item meanwhile, the item stays and
 //     an organizer decides, so nothing is lost by accident.
 
+import { isShopField, isShopValue } from './shops';
 import { ITEM_FIELDS, type ChangeRecord, type RecordRef, type Stamp, refKey, refOf, newItemId } from './model';
 
 export interface Conflict {
@@ -35,6 +36,7 @@ const oldestFirst = (list: ChangeRecord[]) => [...list].sort((x, y) => (newer(x,
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 function fits(field: string, value: unknown): boolean {
+  if (isShopField(field)) return value === null || isShopValue(value);
   const type = ITEM_FIELDS[field as keyof typeof ITEM_FIELDS];
   return type === undefined || value === null || typeof value === type; // null clears; unknown fields come from newer apps
 }

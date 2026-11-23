@@ -2,6 +2,7 @@
 // no keys, no tickets. This is what archived trips keep, and the trip.json inside a backup.
 
 import type { TripState } from './merge';
+import { shopLine, shopsOf } from './shops';
 
 export interface Archived {
   v: 1;
@@ -41,7 +42,7 @@ export function readArchive(json: string): Archived | undefined {
   }
 }
 
-const LINES: [string, string][] = [['addressLocal', '地址'], ['transport', '交通'], ['booking', '預約'], ['note', '備註']];
+const LINES: [string, string][] = [['addressLocal', '地址'], ['transport', '交通'], ['booking', '預約'], ['note', '想做的事']];
 
 /** The itinerary as plain text, readable without this app. */
 export function itineraryText(a: Archived): string {
@@ -54,6 +55,8 @@ export function itineraryText(a: Archived): string {
     out.push(`${time ? `${time}  ` : ''}${String(i.title ?? '')}`);
     for (const [k, label] of LINES) if (typeof i[k] === 'string') out.push(`    ${label}：${i[k]}`);
     if (typeof i.lat === 'number' && typeof i.lng === 'number') out.push(`    座標：${i.lat}, ${i.lng}`);
+    const shops = shopsOf(i);
+    if (shops.length) out.push(`    店家：`, ...shops.map((s) => `      ・${shopLine(s)}`));
   }
   return `${out.join('\n').trim()}\n`;
 }

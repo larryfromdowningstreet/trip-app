@@ -1,5 +1,6 @@
 // What screens need to know about a trip, worked out from its merged state. No storage, no DOM.
 
+import { isShopField } from '../core/shops';
 import type { Bytes } from '../core/bytes';
 import type { PublicIdentity } from '../core/crypto';
 import type { ItemState, TripState } from '../core/merge';
@@ -45,8 +46,11 @@ export const TYPES = [
 export const FIELD_NAMES: Record<string, string> = {
   date: '日期', start: '開始時間', end: '結束時間', type: '類型', title: '標題', place: '地點',
   addressLocal: '當地語言地址', lat: '座標', lng: '座標', transport: '交通方式', booking: '預約資訊',
-  note: '備註', owner: '負責人',
+  note: '想做的事', owner: '負責人',
 };
+
+/** A field's name as people see it; each shop is its own field. */
+export const fieldName = (f: string) => (isShopField(f) ? '店家' : FIELD_NAMES[f] ?? f);
 
 // ---- dates and times ------------------------------------------------------
 // Item dates and times are local to the destination. On the trip the phone is in that time zone too.

@@ -2,7 +2,8 @@
 
 import { useState } from 'preact/hooks';
 import { app } from '../app/store';
-import { FIELD_NAMES, TYPES, initial, when } from '../app/trip';
+import { TYPES, fieldName, initial, when } from '../app/trip';
+import { isShopField, isShopValue, shopLine } from '../core/shops';
 import { whitelistCode } from '../core/codes';
 import { type Conflict, valueOf } from '../core/merge';
 import type { Access, ChangeRecord } from '../core/model';
@@ -98,13 +99,13 @@ function ConflictCard({ conflict: c }: { conflict: Conflict }) {
   const item = trip.state.items.get(c.item);
   const date = String(item?.values.date ?? '');
   const day = app.days.indexOf(date) + 1;
-  const where = [day > 0 ? `第 ${day} 天` : '', c.kind === 'delete' ? '一人刪除、一人修改' : FIELD_NAMES[c.field!] ?? c.field].filter(Boolean).join(' · ');
+  const where = [day > 0 ? `第 ${day} 天` : '', c.kind === 'delete' ? '一人刪除、一人修改' : fieldName(c.field!)].filter(Boolean).join(' · ');
   const name = (r: ChangeRecord) => app.member(r.a)?.name ?? '不明';
 
   const label = (r: ChangeRecord) => {
     if (c.kind === 'field') return show(c.field!, valueOf(r, c.field!));
     if (r.op === 'delete') return '刪除這個項目';
-    if (r.op === 'set' && r.f) return `保留，${FIELD_NAMES[r.f] ?? r.f}改為「${show(r.f, r.v)}」`;
+    if (r.op === 'set' && r.f) return `保留，${fieldName(r.f)}改為「${show(r.f, r.v)}」`;
     return '保留這個項目';
   };
 
@@ -132,6 +133,7 @@ function ConflictCard({ conflict: c }: { conflict: Conflict }) {
 }
 
 function show(field: string, value: unknown): string {
+  if (isShopField(field)) return isShopValue(value) ? shopLine({ name: value.n, where: value.w ?? '', buy: value.b ?? '' }) : '（移除這家店）';
   if (value === null || value === undefined || value === '') return '（清空）';
   if (field === 'type') return TYPES.find(([id]) => id === value)?.[1] ?? String(value);
   if (field === 'owner') return app.member(String(value))?.name ?? '不明';

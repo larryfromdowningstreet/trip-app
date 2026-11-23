@@ -1,5 +1,6 @@
 // Finished trips: the read-only archive view, backups out and back in, and deleting with the PIN.
 
+import { shopLine, shopsOf } from '../core/shops';
 import { Fragment } from 'preact';
 import { useState } from 'preact/hooks';
 import { app } from '../app/store';
@@ -26,6 +27,7 @@ export function ArchivedTrip({ id }: { id: string }) {
         {String(i.title ?? '')}
         {typeof i.addressLocal === 'string' && <span class="tiny muted" style={{ display: 'block' }}>{i.addressLocal}</span>}
         {typeof i.note === 'string' && <span class="tiny muted" style={{ display: 'block' }}>{i.note}</span>}
+        {shopsOf(i).length > 0 && <span class="tiny muted" style={{ display: 'block' }}>店家：{shopsOf(i).map(shopLine).join('、')}</span>}
       </span>
     </li>
   );

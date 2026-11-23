@@ -7,6 +7,7 @@ import {
   countdown, dateOf, daysBetween, itemsOn, longDay, mapLink, nextIndex, shortDay, timeRange, undated,
 } from '../app/trip';
 import type { ItemState } from '../core/merge';
+import { shopsOf } from '../core/shops';
 import { isApple, openOutside } from '../platform/device';
 import { Icon } from '../ui/icons';
 import { Tabs, TripBar, useNow } from '../ui/kit';
@@ -24,14 +25,34 @@ function dayLabel(days: string[], day: string, now: Date): string {
   return `第 ${days.indexOf(day) + 1} 天 · ${longDay(day)}`;
 }
 
-const facts = (v: Record<string, unknown>) =>
-  ([['地址', v.addressLocal], ['交通', v.transport], ['預約', v.booking], ['備註', v.note]] as const)
-    .filter(([, x]) => typeof x === 'string' && x);
+const facts = (v: Record<string, unknown>) => {
+  const all: [string, unknown][] = [['地址', v.addressLocal], ['交通', v.transport], ['預約', v.booking], ['想做的事', v.note]];
+  const list = all.filter((f): f is [string, string] => typeof f[1] === 'string' && f[1] !== '');
+  const shops = shopsOf(v).length;
+  if (shops) list.push(['店家', `${shops} 家`]);
+  return list;
+};
 
 function Facts({ item }: { item: ItemState }) {
+  const shops = shopsOf(item.values);
   return (
     <dl class="facts">
-      {facts(item.values).map(([k, x]) => <Fragment key={k}><dt>{k}</dt><dd>{x as string}</dd></Fragment>)}
+      {facts(item.values).filter(([k]) => k !== '店家').map(([k, x]) => <Fragment key={k}><dt>{k}</dt><dd>{x}</dd></Fragment>)}
+      {shops.length > 0 && (
+        <>
+          <dt>店家</dt>
+          <dd>
+            <ul class="shops">
+              {shops.map((s) => (
+                <li key={s.id}>
+                  <b>{s.name}</b>{s.where && <span class="muted">　{s.where}</span>}
+                  {s.buy && <span class="small muted" style={{ display: 'block' }}>{s.buy}</span>}
+                </li>
+              ))}
+            </ul>
+          </dd>
+        </>
+      )}
     </dl>
   );
 }

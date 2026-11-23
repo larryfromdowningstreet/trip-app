@@ -76,6 +76,7 @@ export interface Ticket {
 
 const LOCK_AFTER_MS = 2 * 60_000;
 const empty = (v: unknown) => v === undefined || v === null || v === '';
+const same = (x: unknown, y: unknown) => x === y || (typeof x === 'object' && x !== null && JSON.stringify(x) === JSON.stringify(y));
 const DEFAULT_PREFS: Prefs = { palette: 'warm', theme: 'auto', mode: 'day' };
 const trustFor = (role: Role) => ({ access: role === 'organizer' ? ('edit' as const) : ('view' as const) });
 
@@ -329,7 +330,7 @@ class App {
     } else {
       const old = this.trip!.state.items.get(id)?.values ?? {};
       for (const [field, value] of Object.entries(values)) {
-        if (value === old[field] || (empty(value) && empty(old[field]))) continue;
+        if (same(value, old[field]) || (empty(value) && empty(old[field]))) continue;
         this.write((state, stamp) => setField(state, stamp, id, field, value ?? null));
       }
     }
