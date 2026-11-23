@@ -1,6 +1,9 @@
 // The website as an iPhone uses it: Safari (WebKit), an iPhone screen, touch.
 // Every test starts on a new phone: empty storage, no service worker.
 
+import { readFile } from 'node:fs/promises';
+import { type Server, createServer } from 'node:http';
+import { extname, join, normalize } from 'node:path';
 import { type Page, expect, test } from '@playwright/test';
 
 const PIN = '3826';
@@ -79,19 +82,51 @@ test('the page may not connect anywhere (CSP)', async ({ page }) => {
   check();
 });
 
-test('opens with no network once the files are stored', async ({ page, context }) => {
+const TYPES: Record<string, string> = {
+  '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2', '.woff': 'font/woff', '.webmanifest': 'application/manifest+json', '.txt': 'text/plain',
+};
+
+/** A copy of the built site that the test can switch off, as if the phone lost its network. */
+async function serveBuild(): Promise<{ url: string; stop: () => Promise<void> }> {
+  const server: Server = createServer(async (req, res) => {
+    const path = normalize(decodeURIComponent(new URL(req.url!, 'http://x').pathname)).replace(/^([/\\]\.\.)+/, '');
+    const file = join('dist', path.endsWith('/') ? `${path}index.html` : path);
+    try {
+      const body = await readFile(file);
+      res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' }).end(body);
+    } catch {
+      res.writeHead(404).end();
+    }
+  });
+  await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
+  const { port } = server.address() as { port: number };
+  return {
+    url: `http://127.0.0.1:${port}/`,
+    stop: () => new Promise((ok) => (server.closeAllConnections(), server.close(() => ok()))),
+  };
+}
+
+// The server really goes away (rather than the browser pretending to be offline, which WebKit's test build
+// does below the service worker), so every file must come from the service worker's cache.
+test('opens with no network once the files are stored', async ({ page }) => {
   const check = watch(page);
+  const site = await serveBuild();
   await asInstalled(page);
-  await page.goto('./');
+  await page.goto(site.url);
   await createProfile(page);
   await page.getByRole('button', { name: '設定' }).click();
   await expect(page.getByText('已可離線使用')).toBeVisible({ timeout: 30_000 }); // the service worker has every file
 
-  await context.setOffline(true);
+  await site.stop();
   await page.reload();
   await expect(page.getByRole('heading', { name: '輸入 PIN 碼' })).toBeVisible();
   for (const digit of PIN) await page.getByRole('group', { name: '數字鍵盤' }).getByRole('button', { name: digit, exact: true }).click();
   await expect(page.getByRole('heading', { name: '我的旅程' })).toBeVisible({ timeout: 20_000 });
+  // A cold start too: a new tab with nothing in memory.
+  const fresh = await page.context().newPage();
+  await fresh.goto(site.url);
+  await expect(fresh.getByRole('heading', { name: '輸入 PIN 碼' })).toBeVisible();
   check();
 });
 
