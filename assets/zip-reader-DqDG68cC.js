@@ -1,0 +1,1 @@
+export{ZipReader,t as getEntryDataDescriptorLength}from"./zip.js-1_N2zhLD.js";

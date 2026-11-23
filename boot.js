@@ -37,7 +37,7 @@
     box.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99;overflow:auto;padding:48px 24px;' +
       'font:15px/1.6 -apple-system,sans-serif;color:#35281F;background:#F5EDE2';
     var title = document.createElement('h1');
-    title.textContent = '旅伴行程沒有成功開啟';
+    title.textContent = '漫旅手帳沒有成功開啟';
     title.style.cssText = 'font-size:22px;margin:0 0 12px';
     var text = document.createElement('p');
     text.textContent = '請截圖這個畫面給開發者，然後按下面的按鈕重新載入（保持連網）。';
