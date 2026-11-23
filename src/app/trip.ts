@@ -4,6 +4,7 @@ import type { Bytes } from '../core/bytes';
 import type { PublicIdentity } from '../core/crypto';
 import type { ItemState, TripState } from '../core/merge';
 import type { Batch } from '../core/bundle';
+import { decodeFull, decodeShort, findPlusCode } from '../core/pluscode';
 import type { Vector } from '../core/log';
 import type { ChangeRecord, Trust } from '../core/model';
 
@@ -163,9 +164,12 @@ export function placeFor(state: TripState, date: string): Place | undefined {
 
 /**
  * Reads coordinates as map apps give them: "35.0116, 135.7681" (Google Maps), "35.0116° N, 135.7681° E"
- * (Apple Maps), or a map link that contains them. South and west make the number negative.
+ * (Apple Maps), a map link that contains them, or a Plus Code ("XQVP+W2 京都市"; a short one needs `near`).
+ * South and west make the number negative.
  */
-export function parseCoords(text: string): Place | undefined {
+export function parseCoords(text: string, near?: Place): Place | undefined {
+  const plus = findPlusCode(text);
+  if (plus) return plus.full ? decodeFull(plus.code) : near && decodeShort(plus.code, near);
   const t = text.replace(/%2C/gi, ',').replace(/[°º]/g, ' ');
   const hemi = /(-?\d{1,2}(?:\.\d+)?)\s*([NS])[\s,]+(-?\d{1,3}(?:\.\d+)?)\s*([EW])/i.exec(t) ??
     /([NS])\s*(-?\d{1,2}(?:\.\d+)?)[\s,]+([EW])\s*(-?\d{1,3}(?:\.\d+)?)/i.exec(t);

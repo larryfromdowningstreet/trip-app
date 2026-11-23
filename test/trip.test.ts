@@ -85,3 +85,25 @@ describe('places', () => {
     expect(nextSwitch(undefined)).toContain('還沒有座標');
   });
 });
+
+describe('plus codes', async () => {
+  const { decodeFull, decodeShort, findPlusCode } = await import('../src/core/pluscode');
+  it('decodes full codes and completes short ones from a nearby point', () => {
+    // Expected values computed with Google's openlocationcode library
+    expect(decodeFull('8FVC9G8F+6X')).toEqual({ lat: 47.365563, lng: 8.524938 });
+    expect(decodeFull('8FVC9G8F+6XQ')).toEqual({ lat: 47.365588, lng: 8.524984 });
+    expect(decodeShort('9G8F+6X', { lat: 47.4, lng: 8.6 })).toEqual({ lat: 47.365563, lng: 8.524938 });
+    expect(decodeShort('9G8F+6X', { lat: 47.0, lng: 8.0 })).toEqual({ lat: 47.365563, lng: 7.524938 }); // nearest one
+    expect(decodeShort('XWQP+4V', { lat: 35.0, lng: 135.77 })).toEqual({ lat: 34.987813, lng: 135.937188 });
+    expect(findPlusCode('XWQP+4V 京都府京都市')).toEqual({ full: false, code: 'XWQP+4V' });
+    expect(findPlusCode('8Q6QXWQP+4V')).toEqual({ full: true, code: '8Q6QXWQP+4V' });
+    expect(findPlusCode('34.99, 135.78')).toBeUndefined();
+  });
+
+  it('works through parseCoords, with the trip as reference for short codes', () => {
+    const kyoto = { lat: 35.0, lng: 135.77 };
+    const full = parseCoords('8Q6QXWQP+4V')!;
+    expect(parseCoords('XWQP+4V 京都市東山区', kyoto)).toEqual(full);
+    expect(parseCoords('XWQP+4V 京都市東山区')).toBeUndefined();
+  });
+});

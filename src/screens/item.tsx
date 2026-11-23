@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { app } from '../app/store';
-import { TYPES, driverAsk, formatCoords, longDay, mapLink, parseCoords, shortDay, toMinutes, weekday } from '../app/trip';
+import { TYPES, driverAsk, formatCoords, longDay, mapLink, parseCoords, placeFor, shortDay, toMinutes, weekday } from '../app/trip';
+import { findPlusCode } from '../core/pluscode';
 import { isApple, openOutside, useWakeLock } from '../platform/device';
 import { Icon } from '../ui/icons';
 import { BackBar, Confirm, Segmented } from '../ui/kit';
@@ -31,11 +32,15 @@ export function Edit({ item: id, day }: { item?: string; day?: string }) {
   const set = (field: keyof typeof form) => (e: { currentTarget: { value: string } }) =>
     setForm({ ...form, [field]: e.currentTarget.value });
 
-  const place = parseCoords(form.coords);
+  const near = placeFor(trip.state, form.date); // for short Plus Codes
+  const place = parseCoords(form.coords, near);
+  const shortCode = !place && findPlusCode(form.coords)?.full === false;
   const problems = {
     title: form.title.trim() ? '' : '請填標題',
     end: form.start && form.end && toMinutes(form.end)! < toMinutes(form.start)! ? '結束時間比開始早' : '',
-    coords: form.coords.trim() && !place ? '看不懂這個座標，格式像 35.0116, 135.7681' : '',
+    coords: !form.coords.trim() || place ? ''
+      : shortCode ? '這是簡短的 Plus Code，要行程裡先有一個附近地點的座標才能換算；或改貼完整的（例如 8Q6QXQVP+W2）'
+      : '看不懂這個座標，格式像 35.0116, 135.7681 或 Plus Code「XQVP+W2 京都市」',
   };
   const owner = form.owner && form.owner !== app.me.id ? app.member(form.owner) : undefined;
   const organizers = trip.data.members.filter((m) => m.trust.access === 'edit');
@@ -87,16 +92,17 @@ export function Edit({ item: id, day }: { item?: string; day?: string }) {
           <input class="input" value={form.addressLocal} placeholder="例如：京都府京都市右京区…" onInput={set('addressLocal')} />
         </label>
         <label class="field">座標（選填，用來導航和判斷日落）
-          <input class="input" value={form.coords} placeholder="例如 34.9949, 135.785" onInput={set('coords')} />
+          <input class="input" value={form.coords} placeholder="例如 XQVP+W2 京都市 或 34.9949, 135.785" onInput={set('coords')} />
           {problems.coords && <span class="error">{problems.coords}</span>}
           <details class="hint">
             <summary>怎麼取得座標？</summary>
             <ol class="how">
-              <li>在 Google 地圖長按目標位置，放下紅色圖釘。</li>
-              <li>不要點上方搜尋列（點了會變成地址），改把下方的「已放置的圖釘」資訊卡往上拉。</li>
-              <li>找到開頭是數字的那一行（例如 34.99494, 135.78500），點一下就會複製。</li>
-              <li>回到這裡長按欄位貼上。Apple 地圖的「34.99494° N, 135.78500° E」也可以。</li>
+              <li>在 Google 地圖點選地點（店家、景點都可以），把下方資訊卡往上拉。</li>
+              <li>找到 ⁜ 圖示那一行，例如「XQVP+W2 京都市東山区」，這是 Plus Code，點一下就會複製。</li>
+              <li>回到這裡長按欄位貼上，App 會自己換算成座標。</li>
+              <li>也可以貼數字座標「34.99494, 135.78500」，或 Apple 地圖的「34.99494° N, 135.78500° E」。</li>
             </ol>
+            <p class="tiny" style={{ marginTop: '4px' }}>簡短的 Plus Code 要靠行程裡另一個附近地點來換算；行程的第一個座標請用完整的 Plus Code 或數字座標。</p>
           </details>
         </label>
         <label class="field">交通方式<input class="input" value={form.transport} onInput={set('transport')} /></label>
