@@ -60,6 +60,7 @@ export function Bulk() {
             <button class="btn line" onClick={share}><Icon name="share" />分享給 AI</button>
           </div>
           {sent && <p class="small" role="status">{sent}</p>}
+          <p class="small danger-text">AI 可能會給錯的時間、地址或座標，匯入前請務必查證，尤其是座標（貼到 Google 地圖搜尋確認位置）。</p>
           <p class="tiny muted">說明裡只有旅程名稱、日期和已排行程的時間與名稱，沒有成員或鑰匙。</p>
         </section>
 

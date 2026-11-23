@@ -92,17 +92,20 @@ export function Edit({ item: id, day }: { item?: string; day?: string }) {
           <input class="input" value={form.addressLocal} placeholder="例如：京都府京都市右京区…" onInput={set('addressLocal')} />
         </label>
         <label class="field">座標（選填，用來導航和判斷日落）
-          <input class="input" value={form.coords} placeholder="例如 XQVP+W2 京都市 或 34.9949, 135.785" onInput={set('coords')} />
+          <input class="input" value={form.coords} placeholder="例如 34.9949, 135.785" onInput={set('coords')} />
           {problems.coords && <span class="error">{problems.coords}</span>}
           <details class="hint">
             <summary>怎麼取得座標？</summary>
             <ol class="how">
-              <li>在 Google 地圖點選地點（店家、景點都可以），把下方資訊卡往上拉。</li>
-              <li>找到 ⁜ 圖示那一行，例如「XQVP+W2 京都市東山区」，這是 Plus Code，點一下就會複製。</li>
-              <li>回到這裡長按欄位貼上，App 會自己換算成座標。</li>
-              <li>也可以貼數字座標「34.99494, 135.78500」，或 Apple 地圖的「34.99494° N, 135.78500° E」。</li>
+              <li>
+                <b>問 AI</b>：例如「清水寺的座標是多少？」，把它給的數字（像 34.99494, 135.78500）貼上。
+                <span class="danger-text">AI 可能答錯，請務必查證</span>：把座標貼到 Google 地圖搜尋，確認圖釘落在正確的地方。
+              </li>
+              <li>
+                <b>Google 地圖長按空地</b>：先把地圖放到最大，長按目標旁邊沒有店家的地方（例如路中間），
+                再把下方「已放置的圖釘」資訊卡往上拉，點開頭是數字的那一行就會複製。
+              </li>
             </ol>
-            <p class="tiny" style={{ marginTop: '4px' }}>簡短的 Plus Code 要靠行程裡另一個附近地點來換算；行程的第一個座標請用完整的 Plus Code 或數字座標。</p>
           </details>
         </label>
         <label class="field">交通方式<input class="input" value={form.transport} onInput={set('transport')} /></label>

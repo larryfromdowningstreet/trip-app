@@ -1,6 +1,6 @@
 {
   "appId": "io.github.larryfromdowningstreet.tripapp",
-  "appName": "旅伴行程",
+  "appName": "漫旅手帳",
   "webDir": "dist",
   "android": { "allowMixedContent": false, "captureInput": false, "webContentsDebuggingEnabled": false }
 }
