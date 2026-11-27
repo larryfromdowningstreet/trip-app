@@ -70,7 +70,7 @@ function explain(e: unknown): Error {
 }
 
 const notBundle = (bytes: Bytes) =>
-  kindOf(bytes) === 'identity' ? '這是身分 QR Code，請對方切到「同步」畫面。' : kindOf(bytes) === 'invite' ? '這是邀請 QR Code，不是同步用的。' : '';
+  kindOf(bytes) === 'identity' ? '這是身分 QR Code，不是同步用的。請對方進入「同步」，按「給收集者掃（顯示我的）」。' : kindOf(bytes) === 'invite' || kindOf(bytes) === 'join' ? '這是邀請 QR Code，不是同步用的。' : '';
 
 // ---- collector ------------------------------------------------------------------
 

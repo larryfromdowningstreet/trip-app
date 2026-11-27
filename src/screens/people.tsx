@@ -15,7 +15,7 @@ const ACCESS = [['edit', '可修改'], ['view', '只能看'], ['blocked', '封�
 export function Members() {
   const trip = app.trip!;
   const members = trip.data.members;
-  const code = useAsync(() => whitelistCode(members), [members.length]);
+  const code = useAsync(() => whitelistCode(members), [members.map((m) => `${m.id}:${m.name}`).join()]); // a nickname change changes the code too
   const [blocking, setBlocking] = useState<string>();
   const me = app.me.id;
   const sorted = [...members].sort((x, y) => (x.id === me ? -1 : y.id === me ? 1 : 0));

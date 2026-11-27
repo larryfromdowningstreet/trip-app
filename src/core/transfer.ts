@@ -5,7 +5,7 @@ import { decodeBase45, encodeBase45 } from './base45';
 import type { Bytes } from './bytes';
 import { FrameCollector, type Progress, toFrames } from './frames';
 
-export const KINDS = { identity: 0x01, bundle: 0x02, invite: 0x03 } as const;
+export const KINDS = { identity: 0x01, bundle: 0x02, invite: 0x03, join: 0x04 } as const;
 export type Kind = keyof typeof KINDS;
 
 export const kindOf = (bytes: Uint8Array): Kind | undefined =>
