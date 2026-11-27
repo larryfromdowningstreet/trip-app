@@ -15,7 +15,8 @@ import { type Identity, type KeyId, type PublicIdentity, createIdentity, newTrip
 import { openBundle, sealBundle } from '../core/bundle';
 import { syncCode } from '../core/codes';
 import { type ListEntry, type ListKind, type Lists, MAX_ENTRIES, copyPacking, emptyLists, readLists } from '../core/lists';
-import { EnrollFailure, type Listed, type Role, makeInvite, openInvite } from '../core/enroll';
+import { EnrollFailure, type Listed, type Role, identityCard, makeInvite, openInvite } from '../core/enroll';
+import { makeJoin, readJoin } from '../core/join';
 import { ChangeLog, type Vector } from '../core/log';
 import { type Conflict, type TripState, addItem, deleteItem, merge, resolve, setField } from '../core/merge';
 import { type Access, type ChangeRecord, type Stamp, accepts, newItemId } from '../core/model';
@@ -462,10 +463,27 @@ class App {
     meta.people = data.members.length;
     const roleOf = (m: Member): Role => scanned.find((x) => x.person.id === m.id)?.role ?? (m.trust.access === 'edit' ? 'organizer' : 'member');
     const listed: Listed[] = data.members.map((m) => ({ id: m.id, name: m.name, role: m.id === this.me.id ? 'organizer' : roleOf(m) }));
-    const bytes = await makeInvite(meta, data.key, this.me, listed, scanned.map((x) => x.person));
+    const invite = await makeInvite(meta, data.key, this.me, listed, scanned.map((x) => x.person));
+    // The whole itinerary rides along, so a newcomer does not need to sync afterwards.
+    const { log } = this.trip!;
+    const batches = await outgoing(meta.id, this.me, log, data.batches, {}, this.accepted(data.members));
+    const bundle = await sealBundle(batches, data.key, { from: this.me.id, have: log.vector() });
+    const bytes = makeJoin(data.members.map(identityCard), invite, bundle);
     await this.saveTrips(this.trips);
     await this.afterEdit();
     return bytes;
+  }
+
+  /**
+   * Reads an organizer's join code: the invite, the cards of everyone it lists, and the itinerary.
+   * The people listed come in with the organizer's word for them (see core/join), so one scan is enough.
+   */
+  async acceptJoin(bytes: Bytes, scanned: PublicIdentity[]): Promise<JoinResult> {
+    const join = await readJoin(bytes);
+    const people = [...scanned.filter((p) => !join.cards.some((c) => c.id === p.id)), ...join.cards];
+    const result = await this.acceptInvite(join.invite, people);
+    await this.takeBundle(join.bundle);
+    return result;
   }
 
   /** Reads an organizer's invite. Only people this phone scanned itself are added; the rest are listed as skipped. */
