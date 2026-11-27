@@ -8,7 +8,7 @@ import type { Bytes } from '../core/bytes';
 import { whitelistCode } from '../core/codes';
 import type { PublicIdentity } from '../core/crypto';
 import { EnrollFailure, ROLES, type Role, identityCard, readIdentityCard } from '../core/enroll';
-import { kindOf } from '../core/transfer';
+import { type Kind, kindOf } from '../core/transfer';
 import { Icon } from '../ui/icons';
 import { BackBar, Segmented, useAsync } from '../ui/kit';
 import { QrShow, Scanner } from '../ui/qr';
@@ -21,6 +21,19 @@ const ENROLL_ERRORS: Record<EnrollFailure['code'], string> = {
   'other-trip': '這是別趟旅程的邀請。',
   format: '看不懂這個 QR Code。',
   'too-large': '資料太大，已拒絕。',
+};
+
+// Scanning the wrong kind of QR Code is easy: the sync screen also has a 「顯示我的」 button.
+// Say what was scanned and where the right one is.
+const WRONG_FOR_IDENTITY: Record<Exclude<Kind, 'identity'> | 'unknown', string> = {
+  bundle: '這是「同步」畫面的 QR Code，不是身分 QR Code。請對方也進入「建立白名單」，切到「顯示我的」。',
+  invite: '這是主揪的邀請 QR Code。如果大家都互掃過了，請按「大家都輪過了，下一步」再掃；還沒的話，請對方先回到互掃。',
+  unknown: '看不懂這個 QR Code。請對方進入「建立白名單」，切到「顯示我的」。',
+};
+const WRONG_FOR_INVITE: Record<Exclude<Kind, 'invite'> | 'unknown', string> = {
+  identity: '這是身分 QR Code，不是邀請。請主揪按「大家都輪過了，下一步」，再按「顯示邀請 QR Code」。',
+  bundle: '這是「同步」畫面的 QR Code，不是邀請。請主揪在「建立白名單」按「顯示邀請 QR Code」。',
+  unknown: '看不懂這個 QR Code。請主揪按「顯示邀請 QR Code」。',
 };
 
 export function Enroll({ join }: { join?: boolean }) {
@@ -39,7 +52,8 @@ export function Enroll({ join }: { join?: boolean }) {
   const newcomers = scanned.filter((p) => !members.some((m) => m.id === p.id));
 
   const onIdentity = async (bytes: Bytes) => {
-    if (kindOf(bytes) !== 'identity') throw new Error('這不是身分 QR Code。請對方切到「顯示我的」。');
+    const kind = kindOf(bytes);
+    if (kind !== 'identity') throw new Error(WRONG_FOR_IDENTITY[kind ?? 'unknown']);
     const person = await readIdentityCard(bytes).catch(() => Promise.reject(new Error('看不懂這個身分 QR Code。')));
     if (person.id === me.id) return undefined;
     const sameName = [...present, ...members].find((p) => p.name === person.name && p.id !== person.id);
@@ -50,7 +64,8 @@ export function Enroll({ join }: { join?: boolean }) {
   };
 
   const onInvite = async (bytes: Bytes) => {
-    if (kindOf(bytes) !== 'invite') throw new Error('這不是邀請 QR Code。請主揪按「顯示邀請 QR Code」。');
+    const kind = kindOf(bytes);
+    if (kind !== 'invite') throw new Error(WRONG_FOR_INVITE[kind ?? 'unknown']);
     try {
       setResult(await app.acceptInvite(bytes, scanned));
       setPhase('done');
