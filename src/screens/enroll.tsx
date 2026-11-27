@@ -26,7 +26,7 @@ const ENROLL_ERRORS: Record<EnrollFailure['code'], string> = {
 // Scanning the wrong kind of QR Code is easy: the sync screen also has a 「顯示我的」 button.
 // Say what was scanned and where the right one is.
 const WRONG_FOR_IDENTITY: Record<Exclude<Kind, 'identity'> | 'unknown', string> = {
-  bundle: '這是「同步」畫面的 QR Code，不是身分 QR Code（身分 QR Code 只有一張，不會輪播）。請對方進入「成員」→「新增成員（面對面互掃）」，切到「顯示我的」。',
+  bundle: '這是「同步」畫面的 QR Code，不是身分 QR Code（身分 QR Code 只有一張，不會輪播）。請對方從「成員」→「新增成員」（還沒加入旅程的人是「加入旅程」）進入互掃畫面，切到「顯示我的」。',
   invite: '這是主揪的邀請 QR Code。如果大家都互掃過了，請按「大家都輪過了，下一步」再掃；還沒的話，請對方先回到互掃。',
   unknown: '看不懂這個 QR Code。請對方進入「建立白名單」，切到「顯示我的」。',
 };
